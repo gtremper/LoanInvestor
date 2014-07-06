@@ -13,8 +13,26 @@ import matplotlib.pyplot as plt
 import time
 import urllib
 
+###########################
+##      CONSTANTS        ##
+###########################
+
+HISTORICAL_DATA_PATH = "data/HistoricalLoanData.csv"
+
+###########################
+##        CLASSES        ##
+###########################
+
 class AutoInvestor:
   pass
+
+###########################
+##        FUNCTIONS      ##
+###########################
+
+def load_historical_data():
+  with open(HISTORICAL_DATA_PATH, "r") as f:
+    return list(csv.DictReader(f))
 
 def main():
   # Read csv enpoint from lendingclub
@@ -63,5 +81,7 @@ def plot_total_funded():
 
 if __name__ == '__main__':
   #main()
-  print funded()
+  #print funded()
+
+  print len(load_historical_data())
 
