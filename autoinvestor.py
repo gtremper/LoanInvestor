@@ -78,10 +78,33 @@ def plot_total_funded():
   plt.plot(totals)
   plt.show()
 
+def round_time_to_hour(t):
+  return t - datetime.timedelta(minutes=t.minute, seconds=t.second, microseconds=t.microsecond)
+
+def check_new_loans():
+
+    resource = urllib.urlopen("https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv")
+    loans = list(csv.DictReader(resource))
+    now = round_time_to_hour(datetime.datetime.now())
+    if any(parser.parse(x['list_d']) > now for x in loans):
+      print "New Loans!!! "
+      print datetime.datetime.now()
+      print "########################"
+      new_loans = filter(lambda x: parser.parse(x['list_d']) > now, loans)
+
+      for loan in sorted(new_loans, key=lambda x: float(x['int_rate'])):
+        print loan['list_d'], loan['int_rate']
+      print "Total new:", len(new_loans)
+
+      return True
+    else:
+      print "no new loans " + str(datetime.datetime.now())
+      return False
+
+
 
 if __name__ == '__main__':
-  #main()
-  #print funded()
-
-  print len(load_historical_data())
+  while not check_new_loans():
+    pass
+  print "done!"
 
