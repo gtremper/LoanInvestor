@@ -78,14 +78,24 @@ def plot_total_funded():
   plt.plot(totals)
   plt.show()
 
-def round_time_to_hour(t):
-  return t - datetime.timedelta(minutes=t.minute, seconds=t.second, microseconds=t.microsecond)
+def round_time_to_last_release(t):
+  rounded = t - datetime.timedelta(minutes=t.minute, seconds=t.second, microseconds=t.microsecond)
+  if t.hour > 18 or t.hour < 6:
+    rounded -= datetime.timedelta(hours=t.hour-18)
+  elif t.hour > 14:
+    rounded -= datetime.timedelta(hours=t.hour-14)
+  elif t.hour > 10:
+    rounded -= datetime.timedelta(hours=t.hour-10)
+  else:
+    rounded -= datetime.timedelta(hours=t.hour-6)
+
+  return rounded
 
 def check_new_loans():
 
     resource = urllib.urlopen("https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv")
     loans = list(csv.DictReader(resource))
-    now = round_time_to_hour(datetime.datetime.now())
+    now = round_time_to_last_release(datetime.datetime.now())
     if any(parser.parse(x['list_d']) > now for x in loans):
       print "New Loans!!! "
       print datetime.datetime.now()
