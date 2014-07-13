@@ -13,12 +13,9 @@ earliest_cr_line
 emp_length
 fico_range_high
 fico_range_low
-home_ownership
-initial_list_status
 inq_last_6mths
 installment
 int_rate
-is_inc_v
 loan_amnt
 mo_sin_old_il_acct
 mo_sin_old_rev_tl_op

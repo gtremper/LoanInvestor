@@ -21,12 +21,9 @@ class AutoInvestor:
   """
   Automatically invests in lendingclub notes
   """
-  
+
   NEW_LOAN_URL = "https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv"
 
-
-class Loan:
-  pass
 
 
 
