@@ -2,6 +2,11 @@
 Lending club loan underwriter.
 
 """
+
 class Underwriter:
-  derp = 4
+  """
+  Underwrites loans
+  """
+  HISTORICAL_DATA_PATH = "data/HistoricalLoanData.csv"
+
 
