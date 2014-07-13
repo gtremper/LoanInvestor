@@ -1,7 +1,11 @@
+#!/usr/bin/env python
+
+import csv
 import datetime as dt
-import datetime.parser as dateparser
-import heapq.merge as merge
+import dateutil.parser as dateparser
+from heapq import merge
 import re
+import urllib
 
 # Clases
 
@@ -11,43 +15,41 @@ class Loan:
   """
 
   def __init__(self, row):
+    self.properties = {}
 
     # Properites of type float
-    for key in _float_keys:
-      self.properties[key] = _parse_float(key)
-
-    for key in _float_missing_keys:
-      self.properties[key] = _parse_float_missing(key)
+    for key in Loan._float_keys:
+      self.properties[key] = self._parse_float(row[key])
 
     # Properties of type datetime
-    for key = _date_keys:
-      self.properties[key] = dateparser.parse(key)
+    for key in Loan._date_keys:
+      self.properties[key] = dateparser.parse(row[key])
 
     # Properties with irregular syntax
-    self.properties["emp_length"] = _parse_emp_length()
+    self.properties["emp_length"] = self._parse_emp_length(row["emp_length"])
 
+  def __repr__(self):
+    return str(self.properties)
+
+
+  # Class methods
+  @classmethod
+  def parse_dict_reader(cls, reader):
+    return [cls(row) for row in reader]
 
 
   # Private functions
-  def _parse_float_missing(num):
+  @staticmethod
+  def _parse_float(num):
     """
     try to parse input as float, return None if fails
     """
     try:
-      return float(num):
+      return float(num)
     except ValueError, err:
       return None
 
-  def _parse_float(num):
-    """
-    parse where null value is 0
-    """
-    try:
-      return float(num):
-    except ValueError, err:
-      return 0.0
-
-
+  @staticmethod
   def _parse_emp_length(length):
     """
     parse the 'emp_length' property
@@ -58,9 +60,7 @@ class Loan:
     if length == '< 1 year':
       return 0.0
 
-    return float(re.match(r'/d+', length).group())
-
-
+    return float(re.match(r'\d+', length).group())
 
 
   # Properties in csv grouped by type
@@ -87,12 +87,45 @@ class Loan:
     "mo_sin_old_rev_tl_op",
     "mo_sin_rcnt_rev_tl_op",
     "mo_sin_rcnt_tl",
-    "mort_acc"
-  ]
-
-  _float_missing_keys = [
-    "bc_open_to_buy",
-    "bc_util"
+    "mort_acc",
+    "mths_since_last_delinq",
+    "mths_since_last_major_derog",
+    "mths_since_last_record",
+    "mths_since_recent_bc",
+    "mths_since_recent_bc_dlq",
+    "mths_since_recent_inq",
+    "mths_since_recent_revol_delinq",
+    "num_accts_ever_120_pd",
+    "num_accts_ever_120_pd",
+    "num_actv_bc_tl",
+    "num_actv_rev_tl",
+    "num_bc_sats",
+    "num_bc_tl",
+    "num_il_tl",
+    "num_op_rev_tl",
+    "num_rev_accts",
+    "num_rev_tl_bal_gt_0",
+    "num_sats",
+    "num_tl_120dpd_2m",
+    "num_tl_30dpd",
+    "num_tl_90g_dpd_24m",
+    "num_tl_op_past_12m",
+    "open_acc",
+    "pct_tl_nvr_dlq",
+    "percent_bc_gt_75",
+    "pub_rec",
+    "pub_rec_bankruptcies",
+    "revol_bal",
+    "revol_util",
+    "tax_liens",
+    "tot_coll_amt",
+    "tot_cur_bal",
+    "tot_hi_cred_lim",
+    "total_acc",
+    "total_bal_ex_mort",
+    "total_bc_limit",
+    "total_il_high_credit_limit",
+    "total_rev_hi_lim"
   ]
 
   _date_keys = [
@@ -103,12 +136,13 @@ class Loan:
     "emp_length"
   ]
 
-  feature_names = sorted(merge(_float_keys, _float_missing_keys,
-    _date_keys, _custom_keys))
+  feature_names = sorted(merge(_float_keys, _date_keys, _custom_keys))
 
 
-# Functions
+def main():
+  resource = urllib.urlopen("https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv")
+  r = csv.DictReader(resource)
+  loans = Loan.parse_dict_reader(r)
 
-
-
-
+if __name__ == '__main__':
+  main()
