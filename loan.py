@@ -3,6 +3,8 @@
 import csv
 import datetime as dt
 import dateutil.parser as dateparser
+import matplotlib.mlab as mlab
+import numpy as np
 from heapq import merge
 import re
 import urllib
@@ -48,6 +50,8 @@ class Loan:
       return float(num)
     except ValueError, err:
       return None
+    except TypeError as e:
+      return None
 
   @staticmethod
   def _parse_emp_length(length):
@@ -60,7 +64,10 @@ class Loan:
     if length == '< 1 year':
       return 0.0
 
-    return float(re.match(r'\d+', length).group())
+    try:
+      return float(re.match(r'\d+', length).group())
+    except TypeError as e:
+      return None
 
 
   # Properties in csv grouped by type
@@ -129,7 +136,7 @@ class Loan:
   ]
 
   _date_keys = [
-    "earliest_cr_line",
+#    "earliest_cr_line",
   ]
 
   _custom_keys = [
@@ -144,5 +151,49 @@ def main():
   r = csv.DictReader(resource)
   loans = Loan.parse_dict_reader(r)
 
+  print "Total loans:", len(loans)
+
+  full_data = [loan for loan in loans if not any(x is None for x in loan.properties.values())]
+
+  full_data_length = len(full_data)
+
+  print "Total with full data:", full_data_length
+  return full_data
+
+
+
+def get_feature_matrix():
+  with open('data/HistoricalLoanData.csv', 'r') as resource:
+    loans = Loan.parse_dict_reader(csv.DictReader(resource))
+
+  bad_props = []
+  for loan in loans:
+    for prop,value in loan.properties.iteritems():
+      if value is None:
+        bad_props.append(prop)
+
+  bad_props = set(bad_props)
+
+  good_props = sorted(set(Loan.feature_names).difference(bad_props))
+
+  print good_props;
+
+  features = []
+  for loan in loans:
+    row = []
+    for prop in good_props:
+      if loan.properties[prop] is None:
+        print "NONE: ", prop, loan
+      row.append(loan.properties[prop])
+    features.append(row)
+
+  mat = np.array(features)
+  pca = mlab.PCA(mat)
+
+  return pca
+
+
 if __name__ == '__main__':
-  main()
+  get_feature_matrix()
+  #main()
+

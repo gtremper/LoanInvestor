@@ -10,7 +10,16 @@ import datetime as dt
 import dateutil.parser as dateparser
 import time
 import urllib
-import underwriter
+import urllib2
+import json
+
+with open("api_key.txt") as f:
+  SECRET = f.read()
+
+with open('investor_id.txt') as f:
+  INVESTOR_ID = f.read()
+
+CASH_URL = 'https://api.lendingclub.com/api/investor/v1/accounts/'+INVESTOR_ID+'/availablecash'
 
 
 ###########################
@@ -21,16 +30,22 @@ class AutoInvestor:
   """
   Automatically invests in lendingclub notes
   """
+  pass
 
-  NEW_LOAN_URL = "https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv"
+def print_cash():
+  req = urllib2.Request(CASH_URL)
+  req.add_header('Authorization', SECRET)
 
+  try:
+    response = urllib2.urlopen(req)
+  except urllib2.HTTPError as e:
+    print e
 
-
-
-
+  data = json.load(response)
+  print data['availableCash']
 
 def main():
-  pass
+  print_cash()
 
 
 if __name__ == '__main__':
