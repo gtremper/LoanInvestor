@@ -92,13 +92,28 @@ class API:
     }
     return self._request_resource("portfolios", data=payload)
 
-  def submit_order(self, loanIds, ammount, portfolioId=None):
+  def submit_order(self, loanIds, ammount=25, portfolioId=None):
     """
     submit and order for some loans
     loanIds -- a list of loanIds to purchase
     ammount -- ammount to invest per loan (must be multiple of 25)
     portfolioId -- The portfolio to assign notes to
     """
+    payload = {}
+    payload['aid'] = self.investor_id
+    payload['orders']= [{
+      "loadId": lid,
+      "requestedAmount": ammount,
+      "portfolioId": portfolioId
+    } if portfolioId is not None else {
+      "loadId": lid,
+      "requestedAmount": ammount
+    } for lid in loanIds]
+
+    print payload
+
+    data = self._request_resource('orders', data=payload)
+    return data['orderConfirmations'], data['orderInstructId']
 
   def listed_loans(self, showAll=False):
     """
