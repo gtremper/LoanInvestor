@@ -135,51 +135,41 @@ class API:
     loans = data['loans']
 
     for loan in loans:
-      for key in ['acceptD','expD','listD','creditPullD','reviewStatusD','ilsExpD','earliestCrLine']:
+      for key in ['acceptD','expD','listD','creditPullD',
+                  'reviewStatusD','ilsExpD','earliestCrLine']:
         loan[key] = dateparser.parse(loan[key])
 
     return loans, dateparser.parse(data['asOfDate'])
 
-  def poll_loans(self, f, showAll=False):
-    """loop calling 'f()' with a list of loans"""
-
-    # how long we should sleep between loops
-    sleep_time = API._RATE_LIMIT.total_seconds()
-
-    # Minumum allowed time between api calls
-    MIN_LOOP_RATE = API._RATE_LIMIT.total_seconds()*1.05
-    
-    # keep track of previous api call time
-    last_call_time = None
-
-    for i in itertools.count():
-      #Call function
+  def poll_loans(self, showAll=False):
+    """Rate limited generator of currently listed loans"""
+    while True:
+      #yield loans
       loans, call_time = self.listed_loans(showAll)
       if loans is not None:
-        f(loans) 
+        yield loans
       else:
         continue
 
-      # Calculate new rate limit, keeps lowering loop rate
-      # until it matches the rate limit in real time
-      if last_call_time is not None:
-        # time bettwen api calls
-        diff = (call_time - last_call_time).total_seconds()
-
-
-
-        # Calculate new rate limit based on real time
-        # between api calls
-        update = diff - MIN_LOOP_RATE
-        sleep_time -= update * ((1.0/min(1.0+i,20.0)) if update>0 else 0.5)
-        print diff, sleep_time
-
-      # Store this call time
-      last_call_time = call_time
-
       # Sleep until ready again
-      if sleep_time > 0.0:
-        time.sleep(sleep_time)
+      sleep_time = call_time + API._RATE_LIMIT \
+                   - dt.datetime.now(call_time.tzinfo)
+      if sleep_time > dt.timedelta(0):
+        time.sleep(sleep_time.total_seconds())
+
+  def poll_until_new_loans(self):
+    """Returns a list of newly listed loans when they become avaiable"""
+    #Get current list time
+    loans, _ = self.listed_loans()
+    start_time = loans[0]['listD']
+    print "start_time:", start_time
+
+    # poll untill the list time is updated
+    for loans in self.poll_loans():
+      loan_time = loans[0]['listD']
+      print "loan_time:", loan_time
+      if start_time < loan_time:
+        return loans
 
 def load_api(investor_id_path, api_key_path):
   """ create an api instance from secrets stored in files
@@ -203,11 +193,30 @@ def loans_by_grade(loans):
 
   for grade in sorted(histogram.keys()):
     print grade+':', histogram[grade], '|',
-  print
+  print 'total:', len(loans)
+
+def save_new_loans_to_file(filename='new_loans.json'):
+  dthandler = lambda obj: (
+    obj.isoformat()
+    if isinstance(obj, dt.datetime)
+    or isinstance(obj, dt.date)
+    else None
+  )
+
+  api = load_api("investor_id.txt", "api_key.txt")
+  loans = api.poll_until_new_loans()
+  with open(filename,'wb') as f:
+    json.dump(loans, f, default=dthandler)
+
+  print 'Saved new loans to {} at {}'.format(filename, dt.datetime.now().time())
+
+  print "Logging number of loans after listing"
+  for loans in api.poll_loans():
+    print dt.datetime.now().time()
+    loans_by_grade(loans)
 
 def main():
-  api = load_api("investor_id.txt", "api_key.txt")
-  api.poll_loans(loans_by_grade)
+  save_new_loans_to_file()
 
 if __name__ == '__main__':
   main()
