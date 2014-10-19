@@ -7,6 +7,7 @@ import dateutil.parser as dateparser
 import time
 import collections
 import numpy as np
+import itertools
 
 class API:
   """
@@ -114,50 +115,54 @@ class API:
       data = json.load(urllib2.urlopen(req))
     except urllib2.HTTPError as e:
       print e
-      return None
+      return None, None
 
     loans = data['loans']
+
+    for loan in loans:
+      for key in ['acceptD','expD','listD','creditPullD','reviewStatusD','ilsExpD','earliestCrLine']:
+        loan[key] = dateparser.parse(loan[key])
+
     return loans, dateparser.parse(data['asOfDate'])
 
   def poll_loans(self, f, showAll=False):
     """loop calling 'f()' with a list of loans"""
 
-    # add a little buffer
-    rate_limit = API._RATE_LIMIT
+    # how long we should sleep between loops
+    sleep_time = API._RATE_LIMIT.total_seconds()
 
     # Minumum allowed time between api calls
-    min_rate_limit = API._RATE_LIMIT.total_seconds()*1.05
+    MIN_LOOP_RATE = API._RATE_LIMIT.total_seconds()*1.05
     
     # keep track of previous api call time
     last_call_time = None
 
-    while True:
+    for i in itertools.count():
       #Call function
       loans, call_time = self.listed_loans(showAll)
-      f(loans)
+      if loans is not None:
+        f(loans) 
+      else:
+        continue
 
+      # Calculate new rate limit, keeps lowering loop rate
+      # until it matches the rate limit in real time
       if last_call_time is not None:
-        diff = (call_time-last_call_time).total_seconds()
+        # time bettwen api calls
+        diff = (call_time - last_call_time).total_seconds()
 
-        # don't count really laggy calls
-        if diff > min_rate_limit*1.5:
-          break
 
-        update = diff-min_rate_limit
-        if update > 0.0:
-          update *= 0.1
-        else:
-          update *= 0.5
-        rate_limit -= dt.timedelta(seconds=update)
-        print diff, rate_limit.total_seconds()
 
+        # Calculate new rate limit based on real time
+        # between api calls
+        update = diff - MIN_LOOP_RATE
+        sleep_time -= update * ((1.0/min(1.0+i,20.0)) if update>0 else 0.5)
+        print diff, sleep_time
+
+      # Store this call time
       last_call_time = call_time
 
-      #Rate limit to 1 second
-      wakeup = call_time + rate_limit
-      sleep_time = wakeup - dt.datetime.now(wakeup.tzinfo)
-      sleep_time = sleep_time.total_seconds()
-
+      # Sleep until ready again
       if sleep_time > 0.0:
         time.sleep(sleep_time)
 
@@ -176,19 +181,18 @@ def load_api(investor_id_path, api_key_path):
 
   return API(investor_id, api_key)
 
-def new_loans(loans):
-    if loans is not None:
-      histogram = collections.defaultdict(int)
-      for loan in loans:
-        histogram[loan['grade']] += 1
+def loans_by_grade(loans):
+  histogram = collections.defaultdict(int)
+  for loan in loans:
+    histogram[loan['grade']] += 1
 
-      for grade in sorted(histogram.keys()):
-        print grade+':', histogram[grade], '|',
-      print
+  for grade in sorted(histogram.keys()):
+    print grade+':', histogram[grade], '|',
+  print
 
 def main():
   api = load_api("investor_id.txt", "api_key.txt")
-  api.poll_loans(new_loans)
+  api.poll_loans(loans_by_grade)
 
 if __name__ == '__main__':
   main()
