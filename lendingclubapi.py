@@ -6,6 +6,7 @@ import datetime as dt
 import dateutil.parser as dateparser
 import time
 import collections
+import numpy as np
 
 class API:
   """
@@ -120,16 +121,40 @@ class API:
 
   def poll_loans(self, f, showAll=False):
     """loop calling 'f()' with a list of loans"""
-    while True:
 
+    # add a little buffer
+    rate_limit = API._RATE_LIMIT
+
+    # Minumum allowed time between api calls
+    min_rate_limit = API._RATE_LIMIT.total_seconds()*1.05
+    
+    # keep track of previous api call time
+    last_call_time = None
+
+    while True:
       #Call function
       loans, call_time = self.listed_loans(showAll)
       f(loans)
 
-      print call_time
+      if last_call_time is not None:
+        diff = (call_time-last_call_time).total_seconds()
+
+        # don't count really laggy calls
+        if diff > min_rate_limit*1.5:
+          break
+
+        update = diff-min_rate_limit
+        if update > 0.0:
+          update *= 0.1
+        else:
+          update *= 0.5
+        rate_limit -= dt.timedelta(seconds=update)
+        print diff, rate_limit.total_seconds()
+
+      last_call_time = call_time
 
       #Rate limit to 1 second
-      wakeup = call_time + API._RATE_LIMIT
+      wakeup = call_time + rate_limit
       sleep_time = wakeup - dt.datetime.now(wakeup.tzinfo)
       sleep_time = sleep_time.total_seconds()
 
