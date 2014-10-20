@@ -13,10 +13,10 @@ import urllib
 import urllib2
 import json
 
-with open("api_key.txt") as f:
+with open("data/api_key.txt") as f:
   SECRET = f.read()
 
-with open('investor_id.txt') as f:
+with open('data/investor_id.txt') as f:
   INVESTOR_ID = f.read()
 
 CASH_URL = 'https://api.lendingclub.com/api/investor/v1/accounts/'+INVESTOR_ID+'/availablecash'

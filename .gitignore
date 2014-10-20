@@ -55,3 +55,5 @@ docs/_build/
 # Secrets
 api_key.txt
 investor_id.txt
+new_loans.json
+

@@ -203,7 +203,7 @@ def save_new_loans_to_file(filename='new_loans.json'):
     else None
   )
 
-  api = load_api("investor_id.txt", "api_key.txt")
+  api = load_api("data/investor_id.txt", "data/api_key.txt")
   loans = api.poll_until_new_loans()
   with open(filename,'wb') as f:
     json.dump(loans, f, default=dthandler)
@@ -216,7 +216,10 @@ def save_new_loans_to_file(filename='new_loans.json'):
     loans_by_grade(loans)
 
 def main():
-  save_new_loans_to_file()
+  #save_new_loans_to_file()
+  api = load_api("data/investor_id.txt", "data/api_key.txt")
+  for loans in api.poll_loans():
+    pass
 
 if __name__ == '__main__':
   main()
