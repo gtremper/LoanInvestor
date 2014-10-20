@@ -9,6 +9,28 @@ import collections
 import numpy as np
 import itertools
 
+__all__ = ['Api']
+
+def datetime_decoder(d):
+    if isinstance(d, list):
+        pairs = enumerate(d)
+    elif isinstance(d, dict):
+        pairs = d.items()
+    result = []
+    for k,v in pairs:
+        if isinstance(v, basestring):
+            try:
+                v = dateparser.parse(v)
+            except TypeError:
+              pass
+        elif isinstance(v, (dict, list)):
+            v = datetime_decoder(v)
+        result.append((k, v))
+    if isinstance(d, list):
+        return [x[1] for x in result]
+    elif isinstance(d, dict):
+        return dict(result)
+
 class Api(object):
   """
   Provides and interface to the LendingClub REST API
@@ -34,14 +56,15 @@ class Api(object):
 
     data -- json payload for the request
     """
+
     req = urllib2.Request(self._base_url.format(resource))
     req.add_header('Authorization', self.api_key)
 
     if data is not None:
-      req.add_data(json.dumps(data))
+      req.add_data(json.dumps(data, separators=(',',':')))
 
     try:
-      return json.load(urllib2.urlopen(req))
+      return json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
     except urllib2.HTTPError as e:
       print e
       return None
@@ -65,18 +88,7 @@ class Api(object):
     if data is None:
       return None
 
-    notes = data['myNotes']
-
-    for note in notes:
-      note['issueDate'] = dateparser.parse(note['issueDate'])
-      note['orderDate'] = dateparser.parse(note['orderDate'])
-      note['loanStatusDate'] = dateparser.parse(note['loanStatusDate'])
-
-      if detailed:
-        note['lastPaymentDate'] = dateparser.parse(note['lastPaymentDate'])
-        note['nextPaymentDate'] = dateparser.parse(note['nextPaymentDate'])
-
-    return notes
+    return data['myNotes']
 
   def portfolios_owned(self):
     """get list of portfolios owned"""
@@ -125,16 +137,32 @@ class Api(object):
     req.add_header('Authorization', self.api_key)
 
     try:
-      data = json.load(urllib2.urlopen(req))
+      data = json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
     except urllib2.HTTPError as e:
       print e
       return None, None
 
-    loans = data['loans']
+    return data['loans'], data['asOfDate']
 
-    for loan in loans:
-      for key in ['acceptD','expD','listD','creditPullD',
-                  'reviewStatusD','ilsExpD','earliestCrLine']:
-        loan[key] = dateparser.parse(loan[key])
 
-    return loans, dateparser.parse(data['asOfDate'])
+def main():
+  with open('data/investor_id.txt') as f:
+    investor_id = f.read()
+
+  with open('data/api_key.txt') as f:
+    api_key = f.read()
+
+  api = Api(investor_id, api_key)
+  print "\nCash"
+  print api.available_cash()
+  print "\nSummary"
+  print api.summary()
+  print "\nNotes owned"
+  print "num notes owned", len(api.notes_owned())
+  print "\portfolios owned"
+  print api.portfolios_owned()
+  print "\nListed loans"
+  print "first loans:", api.listed_loans()[0][0]
+
+if __name__ == '__main__':
+  main()

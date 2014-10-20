@@ -60,7 +60,7 @@ class AutoInvestor(lc.Api):
     # poll untill the list time is updated
     for loans in self.poll_loans():
       loan_time = loans[0]['listD']
-      print "loan_time:", loan_time
+      print "loan_time:", loan_time, len(loans)
       if start_time < loan_time:
         return loans
 
