@@ -12,6 +12,47 @@ import urllib
 # Clases
 
 class Loan:
+  pass
+
+
+def main():
+  pass
+
+if __name__ == '__main__':
+  main()
+
+"""
+def get_feature_matrix():
+  with open('data/HistoricalLoanData.csv', 'r') as resource:
+    loans = Loan.parse_dict_reader(csv.DictReader(resource))
+
+  bad_props = []
+  for loan in loans:
+    for prop,value in loan.properties.iteritems():
+      if value is None:
+        bad_props.append(prop)
+
+  bad_props = set(bad_props)
+
+  good_props = sorted(set(Loan.feature_names).difference(bad_props))
+
+  print good_props;
+
+  features = []
+  for loan in loans:
+    row = []
+    for prop in good_props:
+      if loan.properties[prop] is None:
+        print "NONE: ", prop, loan
+      row.append(loan.properties[prop])
+    features.append(row)
+
+  mat = np.array(features)
+  pca = mlab.PCA(mat)
+
+  return pca
+
+class Loan:
   """
   Represents a loan on LendingClub
   """
@@ -144,56 +185,4 @@ class Loan:
   ]
 
   feature_names = sorted(merge(_float_keys, _date_keys, _custom_keys))
-
-
-def main():
-  resource = urllib.urlopen("https://resources.lendingclub.com/secure/primaryMarketNotes/browseNotes_1-RETAIL.csv")
-  r = csv.DictReader(resource)
-  loans = Loan.parse_dict_reader(r)
-
-  print "Total loans:", len(loans)
-
-  full_data = [loan for loan in loans if not any(x is None for x in loan.properties.values())]
-
-  full_data_length = len(full_data)
-
-  print "Total with full data:", full_data_length
-  return full_data
-
-
-
-def get_feature_matrix():
-  with open('data/HistoricalLoanData.csv', 'r') as resource:
-    loans = Loan.parse_dict_reader(csv.DictReader(resource))
-
-  bad_props = []
-  for loan in loans:
-    for prop,value in loan.properties.iteritems():
-      if value is None:
-        bad_props.append(prop)
-
-  bad_props = set(bad_props)
-
-  good_props = sorted(set(Loan.feature_names).difference(bad_props))
-
-  print good_props;
-
-  features = []
-  for loan in loans:
-    row = []
-    for prop in good_props:
-      if loan.properties[prop] is None:
-        print "NONE: ", prop, loan
-      row.append(loan.properties[prop])
-    features.append(row)
-
-  mat = np.array(features)
-  pca = mlab.PCA(mat)
-
-  return pca
-
-
-if __name__ == '__main__':
-  get_feature_matrix()
-  #main()
-
+"""

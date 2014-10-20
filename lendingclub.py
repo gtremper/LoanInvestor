@@ -15,7 +15,7 @@ def datetime_decoder(d):
     if isinstance(d, list):
         pairs = enumerate(d)
     elif isinstance(d, dict):
-        pairs = d.items()
+        pairs = d.iteritems()
     result = []
     for k,v in pairs:
         if isinstance(v, basestring):
