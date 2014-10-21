@@ -5,31 +5,23 @@ import json
 import datetime as dt
 import dateutil.parser as dateparser
 import time
-import collections
 import numpy as np
-import itertools
+import re
 
 __all__ = ['Api']
 
-def datetime_decoder(d):
-    if isinstance(d, list):
-        pairs = enumerate(d)
-    elif isinstance(d, dict):
-        pairs = d.iteritems()
-    result = []
-    for k,v in pairs:
-        if isinstance(v, basestring):
-            try:
-                v = dateparser.parse(v)
-            except TypeError:
-              pass
-        elif isinstance(v, (dict, list)):
-            v = datetime_decoder(v)
-        result.append((k, v))
-    if isinstance(d, list):
-        return [x[1] for x in result]
-    elif isinstance(d, dict):
-        return dict(result)
+_DATE_REGEX = re.compile(
+  r'\d\d\d\d-\d\d-\d\dT[\d:.]+-[\d:]+'
+)
+
+def datetime_decoder(obj):
+  # iterate all keys and values
+  for k,v in obj.iteritems():
+    if isinstance(v, basestring) and _DATE_REGEX.match(v):
+      obj[k] = dateparser.parse(v)
+
+  return obj
+
 
 class Api(object):
   """
@@ -63,11 +55,8 @@ class Api(object):
     if data is not None:
       req.add_data(json.dumps(data, separators=(',',':')))
 
-    try:
-      return json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
-    except urllib2.HTTPError as e:
-      print e
-      return None
+
+    return json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
 
   def available_cash(self):
     """Get the availble cash in your account
@@ -83,17 +72,17 @@ class Api(object):
     return self._request_resource("summary")
 
   def notes_owned(self, detailed=False):
+    """
+    Returns: list of notes owned 
+    if 'datailed' is true, more information is provided for each loan
+    """
     data = self._request_resource("detailednotes" if detailed else "notes")
-
-    if data is None:
-      return None
-
     return data['myNotes']
 
   def portfolios_owned(self):
     """get list of portfolios owned"""
     data = self._request_resource("portfolios")
-    return data.get('myPortfolios', None)
+    return data['myPortfolios']
 
   def create_portfolio(self, name, desc=""):
     """Create a new portfolio"""
@@ -122,8 +111,7 @@ class Api(object):
       "requestedAmount": ammount
     } for lid in loanIds]
 
-    data = self._request_resource('orders', data=payload)
-    return data['orderConfirmations'], data['orderInstructId']
+    return self._request_resource('orders', data=payload)
 
   def listed_loans(self, showAll=False):
     """
@@ -136,12 +124,7 @@ class Api(object):
 
     req.add_header('Authorization', self.api_key)
 
-    try:
-      data = json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
-    except urllib2.HTTPError as e:
-      print e
-      return None, None
-
+    data = json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
     return data['loans'], data['asOfDate']
 
 
@@ -159,7 +142,7 @@ def main():
   print api.summary()
   print "\nNotes owned"
   print "num notes owned", len(api.notes_owned())
-  print "\portfolios owned"
+  print "\nportfolios owned"
   print api.portfolios_owned()
   print "\nListed loans"
   print "first loans:", api.listed_loans()[0][0]

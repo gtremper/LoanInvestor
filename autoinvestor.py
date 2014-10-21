@@ -55,12 +55,12 @@ class AutoInvestor(lc.Api):
     #Get current list time
     loans, _ = self.listed_loans()
     start_time = loans[0]['listD']
-    print "start_time:", start_time
+    print "last loans listing time:", start_time
 
     # poll untill the list time is updated
     for loans in self.poll_loans():
       loan_time = loans[0]['listD']
-      print "loan_time:", loan_time, len(loans)
+      print dt.datetime.now().time(), len(loans)
       if start_time < loan_time:
         return loans
 
@@ -92,13 +92,14 @@ def loans_by_grade(loans):
   for loan in loans:
     histogram[loan['grade']] += 1
 
-  for grade in sorted(histogram.keys()):
+  for grade in histogram.keys():
     print grade+':', histogram[grade], '|',
   print 'total:', len(loans)
 
 def main():
   investor = AutoInvestor('data/investor_id.txt','data/api_key.txt')
   investor.save_new_loans_to_file()
+
 
 if __name__ == '__main__':
   main()

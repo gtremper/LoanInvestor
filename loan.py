@@ -1,19 +1,25 @@
 #!/usr/bin/env python
 
-import csv
 import datetime as dt
 import dateutil.parser as dateparser
-import matplotlib.mlab as mlab
-import numpy as np
-from heapq import merge
-import re
-import urllib
+import json
+
+FLOAT_FIELDS = set([])
 
 # Clases
-
 class Loan:
   pass
 
+def datetime_decoder(obj):
+  # iterate all keys and values
+  for k,v in obj.iteritems():
+    if isinstance(v, basestring):
+      try:
+        obj[k] = dateparser.parse(v)
+      except TypeError:
+        pass
+
+  return obj
 
 def main():
   pass
@@ -53,9 +59,7 @@ def get_feature_matrix():
   return pca
 
 class Loan:
-  """
   Represents a loan on LendingClub
-  """
 
   def __init__(self, row):
     self.properties = {}
@@ -84,9 +88,7 @@ class Loan:
   # Private functions
   @staticmethod
   def _parse_float(num):
-    """
     try to parse input as float, return None if fails
-    """
     try:
       return float(num)
     except ValueError, err:
@@ -96,9 +98,7 @@ class Loan:
 
   @staticmethod
   def _parse_emp_length(length):
-    """
     parse the 'emp_length' property
-    """
     if length == 'n/a':
       return None
 
