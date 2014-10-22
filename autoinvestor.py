@@ -37,23 +37,22 @@ class AutoInvestor(lc.Api):
   def poll_loans(self, showAll=False):
     """Rate limited generator of currently listed loans"""
     while True:
-      start = dt.datetime.now()
-      loans, call_time = self.listed_loans(showAll)
+      call_time = dt.datetime.now()
+      loans = self.listed_loans(showAll)
       if loans is not None:
         yield loans
       else:
         continue
 
       # Sleep until ready again
-      sleep_time = call_time + self.RATE_LIMIT \
-                   - dt.datetime.now(call_time.tzinfo)
+      sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
       if sleep_time > dt.timedelta(0):
         time.sleep(sleep_time.total_seconds())
 
   def poll_until_new_loans(self):
     """Returns a list of newly listed loans when they become avaiable"""
     #Get current list time
-    loans, _ = self.listed_loans()
+    loans = self.listed_loans()
     start_time = dateparser.parse(loans[0]['listD'])
     print "last loans listing time:", start_time
 

@@ -112,7 +112,7 @@ class Api(object):
     req.add_header('Authorization', self.api_key)
 
     data = json.load(urllib2.urlopen(req))
-    return data['loans'], dateparser.parse(data['asOfDate'])
+    return data['loans']
 
 
 def main():
@@ -132,7 +132,7 @@ def main():
   print "\nportfolios owned"
   print api.portfolios_owned()
   print "\nListed loans"
-  print "first loans:", api.listed_loans()[0][0]
+  print "first loans:", api.listed_loans()[0]
 
 if __name__ == '__main__':
   main()
