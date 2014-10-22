@@ -37,7 +37,7 @@ class AutoInvestor(lc.Api):
   def poll_loans(self, showAll=False):
     """Rate limited generator of currently listed loans"""
     while True:
-      #yield loans
+      start = dt.datetime.now()
       loans, call_time = self.listed_loans(showAll)
       if loans is not None:
         yield loans
@@ -54,27 +54,20 @@ class AutoInvestor(lc.Api):
     """Returns a list of newly listed loans when they become avaiable"""
     #Get current list time
     loans, _ = self.listed_loans()
-    start_time = loans[0]['listD']
+    start_time = dateparser.parse(loans[0]['listD'])
     print "last loans listing time:", start_time
 
     # poll untill the list time is updated
     for loans in self.poll_loans():
-      loan_time = loans[0]['listD']
+      loan_time = dateparser.parse(loans[0]['listD'])
       print dt.datetime.now().time(), len(loans)
       if start_time < loan_time:
         return loans
 
   def save_new_loans_to_file(self, filename='new_loans.json'):
-    dthandler = lambda obj: (
-      obj.isoformat()
-      if isinstance(obj, dt.datetime)
-      or isinstance(obj, dt.date)
-      else None
-    )
-
     loans = self.poll_until_new_loans()
     with open(filename,'wb') as f:
-      json.dump(loans, f, default=dthandler)
+      json.dump(loans, f)
   
     print 'Saved new loans to {} at {}'.format(filename, dt.datetime.now().time())
   

@@ -10,19 +10,6 @@ import re
 
 __all__ = ['Api']
 
-_DATE_REGEX = re.compile(
-  r'\d\d\d\d-\d\d-\d\dT[\d:.]+-[\d:]+'
-)
-
-def datetime_decoder(obj):
-  # iterate all keys and values
-  for k,v in obj.iteritems():
-    if isinstance(v, basestring) and _DATE_REGEX.match(v):
-      obj[k] = dateparser.parse(v)
-
-  return obj
-
-
 class Api(object):
   """
   Provides and interface to the LendingClub REST API
@@ -56,7 +43,7 @@ class Api(object):
       req.add_data(json.dumps(data, separators=(',',':')))
 
 
-    return json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
+    return json.load(urllib2.urlopen(req))
 
   def available_cash(self):
     """Get the availble cash in your account
@@ -124,8 +111,8 @@ class Api(object):
 
     req.add_header('Authorization', self.api_key)
 
-    data = json.load(urllib2.urlopen(req), object_hook=datetime_decoder)
-    return data['loans'], data['asOfDate']
+    data = json.load(urllib2.urlopen(req))
+    return data['loans'], dateparser.parse(data['asOfDate'])
 
 
 def main():
