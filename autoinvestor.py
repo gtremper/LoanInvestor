@@ -54,12 +54,14 @@ class AutoInvestor(lc.Api):
     #Get current list time
     loans = self.listed_loans()
     start_time = dateparser.parse(loans[0]['listD'])
+    print "starting at:",dt.datetime.now().time()
     print "last loans listing time:", start_time
 
     # poll untill the list time is updated
-    for loans in self.poll_loans():
+    for i, loans in enumerate(self.poll_loans()):
+      if i % 10 == 0:
+        print dt.datetime.now().time()
       loan_time = dateparser.parse(loans[0]['listD'])
-      print dt.datetime.now().time(), len(loans)
       if start_time < loan_time:
         return loans
 
