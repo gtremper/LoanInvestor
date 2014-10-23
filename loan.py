@@ -2,6 +2,7 @@
 import datetime as dt
 import dateutil.parser as dateparser
 import json
+import re
 
 FIELDS = set(['accNowDelinq', 'accOpenPast24Mths', 'acceptD', 'addrCity',
  'addrState', 'annualInc', 'avgCurBal', 'bcOpenToBuy', 'bcUtil',
@@ -24,10 +25,10 @@ FIELDS = set(['accNowDelinq', 'accOpenPast24Mths', 'acceptD', 'addrCity',
  'totalRevHiLim'])
 
 STRING_FIELDS = set(["initialListStatus, grade, addrState",
-  "subGrade", "homeOwnership", "reviewStatus", "isIncV",
-  "empTitle", "purpose", "addrCity"])
+  "subGrade", "homeOwnership", "reviewStatus", "empTitle",
+  "purpose", "addrCity"])
 
-_DATE_REGEX = re.compile(
+_DATE_RE = re.compile(
   r'\d\d\d\d-\d\d-\d\dT[\d:.]+-[\d:]+'
 )
 
@@ -42,18 +43,25 @@ class Loan:
     This class excpects the types of values in 'data'to be
     the same as the values generated from 'json.load()'
     """
+
+
     if set(data.iterkeys()) != FIELDS:
       raise ValueError
 
     # Fill us with well formated dates
     for k,v in data.iteritems():
-      if isinstance(v, basestring) and _DATE_REGEX.match(v):
-        self.__dict__[k] = dateparser.parse(v)
+      if isinstance(v, basestring):
+        if _DATE_RE.match(v):
+          self.__dict__[str(k)] = dateparser.parse(v)
+        else:
+          self.__dict__[str(k)] = str(v)
       else:
-        self.__dict__[k] = v
+        self.__dict__[str(k)] = v
 
     # special cases
-    self.isIncV = (self.isInvV == 'VERIFIED')
+    self.isIncV = (self.isIncV == 'VERIFIED')
+
+
 
 def main():
   pass

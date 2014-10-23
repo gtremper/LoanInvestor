@@ -25,7 +25,8 @@ class AutoInvestor(lc.Api):
   Automatically invests in lendingclub notes
   """
 
-  def __init__(self, investor_id_path, api_key_path):
+  def __init__(self, investor_id_path='data/investor_id.txt',
+                      api_key_path='data/api_key.txt'):
     with open(investor_id_path) as f:
       investor_id = f.read()
 
