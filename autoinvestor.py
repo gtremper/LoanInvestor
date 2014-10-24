@@ -39,11 +39,11 @@ class AutoInvestor(lc.Api):
     """Rate limited generator of currently listed loans"""
     while True:
       call_time = dt.datetime.now()
-      loans = self.listed_loans(showAll)
-      if loans is not None:
+      try:
+        loans = self.listed_loans(showAll)
         yield loans
-      else:
-        continue
+      except urllib2.HTTPError as e:
+        print e
 
       # Sleep until ready again
       sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
@@ -97,4 +97,9 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  start = dt.datetime.now()
+  try:
+    main()
+  except KeyboardInterrupt:
+    elapsed_time = dt.datetime.now() - start
+    print " Ran for {:.2f} seconds".format(elapsed_time.total_seconds())
