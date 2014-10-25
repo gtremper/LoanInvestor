@@ -76,7 +76,7 @@ class AutoInvestor(lc.Api):
     print "Logging number of loans after listing"
     for loans in self.poll_loans():
       print dt.datetime.now().time()
-      loans_by_grade(loans)
+      amount_funded(loans)
 
 ###########################
 ##       FUNCTIONS       ##
@@ -94,6 +94,13 @@ def loans_by_grade(loans):
 def main():
   investor = AutoInvestor('data/investor_id.txt','data/api_key.txt')
   investor.save_new_loans_to_file()
+
+def amount_funded(loans):
+  get_funded = lambda l: float(l['fundedAmount']) / float(l['loanAmount'])
+  by_funded_amnt = sorted(loans, key=get_funded, reverse=True)
+  for l in by_funded_amnt[:10]:
+    print "{:.3f}".format(get_funded(l)),
+  print
 
 
 if __name__ == '__main__':
