@@ -42,8 +42,9 @@ class AutoInvestor(lc.Api):
       try:
         loans = self.listed_loans(showAll)
         yield loans
-      except urllib2.HTTPError as e:
-        print e
+      except (urllib2.HTTPError, urllib2.URLError) as e:
+        print "Exception:", e
+        time.sleep(1) #Wait longer before retrying after error
 
       # Sleep until ready again
       sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
@@ -55,8 +56,10 @@ class AutoInvestor(lc.Api):
     #Get current list time
     loans = self.listed_loans()
     start_time = dateparser.parse(loans[0]['listD'])
-    print "starting at:",dt.datetime.now().time()
-    print "last loans listing time:", start_time
+    print
+    print "Starting at:\t\t", dt.datetime.now().time()
+    print "Last loan listing time:", start_time
+    print
 
     # poll untill the list time is updated
     for i, loans in enumerate(self.poll_loans()):
@@ -67,15 +70,17 @@ class AutoInvestor(lc.Api):
         return loans
 
   def save_new_loans_to_file(self, filename='new_loans.json'):
-    loans = self.poll_until_new_loans()
-    with open(filename,'wb') as f:
-      json.dump(loans, f)
+    #loans = self.poll_until_new_loans()
+    #with open(filename,'wb') as f:
+    #  json.dump(loans, f)
   
+    print
     print 'Saved new loans to {} at {}'.format(filename, dt.datetime.now().time())
-  
-    print "Logging number of loans after listing"
+    print "Logging top funded loans..."
+    print
     for loans in self.poll_loans():
-      print dt.datetime.now().time()
+      now = dt.datetime.now()
+      print "{:02}:{:02} |".format(now.minute, now.second),
       amount_funded(loans)
 
 ###########################
@@ -100,7 +105,7 @@ def amount_funded(loans):
   by_funded_amnt = sorted(loans, key=get_funded, reverse=True)
   for l in by_funded_amnt[:10]:
     print "{:.3f}".format(get_funded(l)),
-  print
+  print "| {}".format(len(loans))
 
 
 if __name__ == '__main__':
