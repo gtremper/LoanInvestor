@@ -42,9 +42,12 @@ class AutoInvestor(lc.Api):
       try:
         loans = self.listed_loans(showAll)
         yield loans
-      except (urllib2.HTTPError, urllib2.URLError) as e:
-        print "Exception:", e
-        time.sleep(1) #Wait longer before retrying after error
+      except urllib2.HTTPError as err:
+        print "HTTPError: {}".format(err.code)
+        time.sleep(1)
+      except urllib2.URLError as err:
+        print "URLError: {}".format(err.reason)
+        time.sleep(1)
 
       # Sleep until ready again
       sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
@@ -70,9 +73,9 @@ class AutoInvestor(lc.Api):
         return loans
 
   def save_new_loans_to_file(self, filename='new_loans.json'):
-    #loans = self.poll_until_new_loans()
-    #with open(filename,'wb') as f:
-    #  json.dump(loans, f)
+    loans = self.poll_until_new_loans()
+    with open(filename,'wb') as f:
+      json.dump(loans, f)
   
     print
     print 'Saved new loans to {} at {}'.format(filename, dt.datetime.now().time())
