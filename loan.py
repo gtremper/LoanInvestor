@@ -26,8 +26,6 @@ _DATE_RE = re.compile(
   r'\d\d\d\d-\d\d-\d\dT[\d:.]+-[\d:]+'
 )
 
-re.sub(r'_(\w)', lambda x: x.group(1).capitalize(), 'total_il_high_credit_limit')
-
 # Clases
 class Loan:
   """ Represents a listed lending club loan """
@@ -39,26 +37,20 @@ class Loan:
     This class excpects the types of values in 'data'to be
     the same as the values generated from 'json.load()'
     """
-    def makeCamel(attr):
-      """Make strings for iterator camelCase"""
-      return re.sub(r'_(\w)', lambda x: x.group(1).capitalize(), str(attr))
 
-
-    if set(makeCamel(k) for k in data.iterkeys()) >= FIELDS:
-      raise ValueError
+    # Loan data
+    self.data = {}
 
     # Fill us with well formated dates
     for k,v in data.iteritems():
       if isinstance(v, basestring):
         if _DATE_RE.match(v):
-          self.data[makeCamel(k)] = dateparser.parse(v)
+          self.data[str(k)] = dateparser.parse(v)
         else:
-          self.data[makeCamel(k)] = str(v)
+          self.data[str(k)] = str(v)
       else:
-        self.data[makeCamel(k)] = v
+        self.data[str(k)] = v
 
-    # special cases
-    #self.isIncV = (self.isIncV == 'VERIFIED')
 
 def parse_csv(filename):
   with open(filename) as f:

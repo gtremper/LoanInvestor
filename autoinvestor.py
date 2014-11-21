@@ -44,10 +44,16 @@ class AutoInvestor(lc.Api):
         yield loans
       except urllib2.HTTPError as err:
         print "HTTPError: {}".format(err.code)
-        time.sleep(1)
+        time.sleep(2)
       except urllib2.URLError as err:
         print "URLError: {}".format(err.reason)
-        time.sleep(1)
+        time.sleep(2)
+      except (KeyboardInterrupt,SystemExit) as err:
+        print "err", err
+        return
+      except Exception as err:
+        print "Other exception:", type(err), err
+        time.sleep(5)
 
       # Sleep until ready again
       sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
@@ -81,7 +87,9 @@ class AutoInvestor(lc.Api):
     print 'Saved new loans to {} at {}'.format(filename, dt.datetime.now().time())
     print "Logging top funded loans..."
     print
-    for loans in self.poll_loans():
+    for i, loans in enumerate(self.poll_loans()):
+      if i > 200:
+        break
       now = dt.datetime.now()
       print "{:02}:{:02} |".format(now.minute, now.second),
       amount_funded(loans)
@@ -112,9 +120,4 @@ def amount_funded(loans):
 
 
 if __name__ == '__main__':
-  start = dt.datetime.now()
-  try:
-    main()
-  except KeyboardInterrupt:
-    elapsed_time = dt.datetime.now() - start
-    print " Ran for {:.2f} seconds".format(elapsed_time.total_seconds())
+  main()
