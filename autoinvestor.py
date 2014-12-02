@@ -5,7 +5,6 @@ Attepts to underwrite and invest new loans
 Should be used with a cronjob
 """
 
-import csv
 import collections
 import datetime as dt
 import dateutil.parser as dateparser
@@ -25,13 +24,11 @@ class AutoInvestor(lc.Api):
   Automatically invests in lendingclub notes
   """
 
-  def __init__(self, investor_id_path='data/investor_id.txt',
-                      api_key_path='data/api_key.txt'):
-    with open(investor_id_path) as f:
-      investor_id = f.read()
-
-    with open(api_key_path) as f:
-      api_key = f.read()
+  def __init__(self, secrets="data/secrets.json"):
+    with open(secrets) as f:
+      data = json.load(f)
+      investor_id = data['investor_id']
+      api_key = data['api_key']
 
     super(AutoInvestor, self).__init__(investor_id, api_key)
 
@@ -108,7 +105,7 @@ def loans_by_grade(loans):
   print 'total:', len(loans)
 
 def main():
-  investor = AutoInvestor('data/investor_id.txt','data/api_key.txt')
+  investor = AutoInvestor()
   investor.save_new_loans_to_file()
 
 def amount_funded(loans):
