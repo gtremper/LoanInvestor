@@ -18,38 +18,38 @@ class P2PPicks(lc.Api):
       self.p2p_key = str(secrets['p2p_key'])
       self.p2p_secret = str(secrets['p2p_secret'])
 
-      investor_id = secrets['investor_id']
-      api_key = secrets['api_key']
+      investor_id = str(secrets['investor_id'])
+      api_key = str(secrets['api_key'])
       super(P2PPicks, self).__init__(investor_id, api_key)
 
   def request(self, method, action, data):
+    #This is required for every request
+    data['api_key'] = self.p2p_key
+
+    # Create signature from md5 hash of POST paramaters
     md5 = hashlib.md5()
     md5.update('{}-{}&'.format(method, action))
 
-    data['api_key'] = self.p2p_key
     for key in sorted(data):
       md5.update('{}{}&'.format(key, data[key]))
 
     md5.update('secret{}'.format(self.p2p_secret))
-
     data['sig'] = md5.hexdigest()
 
     req = urllib2.Request(P2PPicks._BASE_URL.format(method=method, action=action))
-    req.add_data(json.dumps(data, separators=(',',':')))
+    req.add_data(urllib.urlencode(data))
 
     return json.load(urllib2.urlopen(req))
 
   def list(self):
     res = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'})
-    print res
-
-
+    return res
 
 
 
 def main():
   p2p = P2PPicks()
-  p2p.list()
+  print p2p.list()
 
 if __name__ == '__main__':
   main()
