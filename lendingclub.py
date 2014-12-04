@@ -40,8 +40,9 @@ class Api(object):
     req.add_header('Authorization', self.api_key)
 
     if data is not None:
+      req.add_header('Accept', 'application/json')
+      req.add_header('Content-type', 'application/json')
       req.add_data(json.dumps(data, separators=(',',':')))
-
 
     return json.load(urllib2.urlopen(req))
 
@@ -74,7 +75,7 @@ class Api(object):
   def create_portfolio(self, name, desc=""):
     """Create a new portfolio"""
     payload = {
-      "aid": self.investor_id,
+      "aid": int(self.investor_id),
       "portfolioName": name,
       "portfolioDescription": desc
     }
@@ -88,14 +89,14 @@ class Api(object):
     portfolioId -- The portfolio to assign notes to
     """
     payload = {}
-    payload['aid'] = self.investor_id
+    payload['aid'] = int(self.investor_id)
     payload['orders']= [{
-      "loadId": lid,
-      "requestedAmount": ammount,
-      "portfolioId": portfolioId
+      "loadId": int(lid),
+      "requestedAmount": float(ammount),
+      "portfolioId": int(portfolioId)
     } if portfolioId is not None else {
-      "loadId": lid,
-      "requestedAmount": ammount
+      "loadId": int(lid),
+      "requestedAmount": float(ammount)
     } for lid in loanIds]
 
     return self._request_resource('orders', data=payload)
