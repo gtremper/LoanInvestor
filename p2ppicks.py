@@ -24,6 +24,7 @@ class P2PPicks(lc.Api):
       secrets = json.load(f)
       self.p2p_key = str(secrets['p2p_key'])
       self.p2p_secret = str(secrets['p2p_secret'])
+      self.p2p_portfolio_id = int(secrets['p2p_portfolio_id'])
 
       investor_id = str(secrets['investor_id'])
       api_key = str(secrets['api_key'])
@@ -107,18 +108,24 @@ class P2PPicks(lc.Api):
 
       listed = set(x['id'] for x in self.listed_loans())
       print dt.datetime.now().time(), p2p_ids & listed
-    
 
+  def invest(self):
+    picks = self.poll_for_update()
+    top = [int(x['loan_id']) for x in picks if x['top'] == '5%']
 
+    try:
+      res = self.submit_order(top, portfolioId=self.p2p_portfolio_id)
+    except urllib2.HTTPError as e:
+      print e
+      return
 
-
-
-
-
+    print "Invested in", len(top), "loans."
+    print "Response:"
+    pprint.pprint(res)
 
 def main():
   p2p = P2PPicks()
-  p2p.check_loans_available()
+  p2p.invest()
 
 if __name__ == '__main__':
   main()
