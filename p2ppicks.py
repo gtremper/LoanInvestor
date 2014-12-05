@@ -126,6 +126,11 @@ class P2PPicks(lc.Api):
 
     res: the json response to lc.Api.submit_order()
     """
+    # Return if no notes invested
+    if res['orderInstructId'] is None:
+      print "No orders successful"
+      return
+
     orders = res['orderConfirmations']
 
     # Create  list of successful orders
@@ -134,11 +139,6 @@ class P2PPicks(lc.Api):
       'loan_id': int(order['loanId']),
       'note': int(order['investedAmount'])
     } for order in orders if 'ORDER_FULFILLED' in order['executionStatus']]
-
-    # Return if no notes invested
-    if not picks:
-      print "No orders successful"
-      return
 
     # Build payload JSON object
     p2p_payload = [{
@@ -154,6 +154,7 @@ class P2PPicks(lc.Api):
     res = self.request('subscriber', 'report', data)
     print 'Invested ${} in {} of {} loans'\
           .format(res['note_total'], len(picks), len(orders))
+
 
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
@@ -205,19 +206,14 @@ class P2PPicks(lc.Api):
     top = [int(x['loan_id']) for x in picks 
                                 if x['top'] == '5%' and x['grade'] in grades]
 
-    if not top:
-      print "No picks matching critera"
-      return False
-
     try:
+      # Submit order and report activity to P2P-Picks
       res = self.submit_order(top, ammount, self.lc_portfolio_id)
+      self.report(res)
     except urllib2.HTTPError as e:
       print e
-      return False
 
-    # Report activity to P2P-Picks and print loan info
-    self.report(res)
-    return True
+    print '${:.2f} cash remaining'.format(self.available_cash())
 
 
 def main():
