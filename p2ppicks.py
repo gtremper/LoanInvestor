@@ -13,6 +13,7 @@ import time
 import urllib
 import urllib2
 import pprint
+import random
 
 class P2PPicks(lc.Api):
   """
@@ -80,7 +81,9 @@ class P2PPicks(lc.Api):
     data['sig'] = md5.hexdigest()
 
     # Send Request
-    req = urllib2.Request(P2PPicks._BASE_URL.format(method=method, action=action))
+    req = urllib2.Request(
+      P2PPicks._BASE_URL.format(method=method, action=action)
+    )
     req.add_data(urllib.urlencode(data))
 
     return json.load(urllib2.urlopen(req))['response']
@@ -118,7 +121,39 @@ class P2PPicks(lc.Api):
     return str(data['sid']), str(data['status'])
 
   def report(self, res):
-    pass
+    """
+    Report P2P-Picks usage.
+
+    res: the json response to lc.Api.submit_order()
+    """
+    orders = res['orderConfirmations']
+
+    # Create  list of successful orders
+    picks = [{
+      'product': 'profit-maximizer',
+      'loan_id': int(order['loanId']),
+      'note': int(order['investedAmount'])
+    } for order in orders if 'ORDER_FULFILLED' in order['executionStatus']]
+
+    # Return if no notes invested
+    if not picks:
+      print "No orders successful"
+      return
+
+    # Build payload JSON object
+    p2p_payload = [{
+      'sid': self.p2p_session,
+      'picks': picks
+    }]
+
+    data = {
+      'p2p_payload': json.dumps(p2p_payload, separators=(',',':'))
+    }
+
+    # Report to P2P-Picks
+    res = self.request('subscriber', 'report', data)
+    print 'Invested ${} in {} of {} loans'\
+          .format(res['note_total'], len(picks), len(orders))
 
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
@@ -161,7 +196,7 @@ class P2PPicks(lc.Api):
         continue
       return picks
 
-  def invest(self, grades=frozenset(['D','E','F'])):
+  def invest(self, ammount=25.0, grades=frozenset(['D','E','F'])):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
@@ -172,28 +207,22 @@ class P2PPicks(lc.Api):
 
     if not top:
       print "No picks matching critera"
-      return
+      return False
 
     try:
-      res = self.submit_order(top, portfolioId=self.lc_portfolio_id)
+      res = self.submit_order(top, ammount, self.lc_portfolio_id)
     except urllib2.HTTPError as e:
       print e
-      return
+      return False
 
-    # Report activity to P2P-Picks
+    # Report activity to P2P-Picks and print loan info
     self.report(res)
-
-  def process_order_response(self, res):
-    """
-    Process the JSON response of a call to "submit_order"
-    """
-
+    return True
 
 
 def main():
   p2p = P2PPicks()
-  print p2p.validate()
-  #p2p.invest()
+  p2p.invest()
 
 if __name__ == '__main__':
   main()
