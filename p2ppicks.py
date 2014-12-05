@@ -188,7 +188,6 @@ class P2PPicks(lc.Api):
 
     start = dt.datetime.now()
     print "Starting poll at", start
-    print
 
     for i, (picks, timestamp) in enumerate(self.poll_picks()):
       if timestamp < start:
@@ -214,6 +213,8 @@ class P2PPicks(lc.Api):
       print e
 
     print '${:.2f} cash remaining'.format(self.available_cash())
+    pprint.pprint(res)
+    print
 
 
 def main():
