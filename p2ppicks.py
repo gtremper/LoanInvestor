@@ -89,7 +89,7 @@ class P2PPicks(lc.Api):
       "top": "5%"
     }
     """
-    data = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'}) 
+    data = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'})
     return data['picks'], dateparser.parse(data['timestamp'])
 
   def poll_picks(self):
@@ -128,7 +128,7 @@ class P2PPicks(lc.Api):
 
     for i, (picks, timestamp) in enumerate(self.poll_picks()):
       if timestamp < start:
-        if i % 5 == 0:
+        if i % 10 == 0:
           print dt.datetime.now().time()
         continue
       return picks
@@ -148,9 +148,9 @@ class P2PPicks(lc.Api):
 
     listed = set(x['id'] for x in self.listed_loans())
 
-    availble = p2p_ids & listed
+    available = p2p_ids & listed
     print dt.datetime.now().time()
-    print "Available:", availble
+    print "Available:", available
 
     print 
     print "Polling for availability"
@@ -160,22 +160,24 @@ class P2PPicks(lc.Api):
       listed = set(x['id'] for x in self.listed_loans())
       print dt.datetime.now().time(), p2p_ids & listed
 
-  def invest(self):
+  def invest(self, grades=set(['D','E','F'])):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
     """
     picks = self.poll_for_update()
-    top = [int(x['loan_id']) for x in picks if x['top'] == '5%']
+    top = [int(x['loan_id']) for x in picks if x['top'] == '5%' and x['grade'] in grades]
+
+    if not top:
+      print "No picks matching critera"
+      return
 
     try:
-      res = self.submit_order(top, portfolioId=self.p2p_portfolio_id)
+      res = self.submit_order(top)
     except urllib2.HTTPError as e:
       print e
       return
 
-    print "Invested in", len(top), "loans."
-    print "Response:"
     pprint.pprint(res)
 
 def main():

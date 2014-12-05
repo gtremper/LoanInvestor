@@ -81,7 +81,7 @@ class Api(object):
     }
     return self._request_resource("portfolios", data=payload)
 
-  def submit_order(self, loanIds, ammount=25, portfolioId=None):
+  def submit_order(self, loanIds, ammount=25.0, portfolioId=None):
     """
     submit and order for some loans
     loanIds -- a list of loanIds to purchase
@@ -91,11 +91,11 @@ class Api(object):
     payload = {}
     payload['aid'] = int(self.investor_id)
     payload['orders']= [{
-      "loadId": int(lid),
+      "loanId": int(lid),
       "requestedAmount": float(ammount),
       "portfolioId": int(portfolioId)
     } if portfolioId is not None else {
-      "loadId": int(lid),
+      "loanId": int(lid),
       "requestedAmount": float(ammount)
     } for lid in loanIds]
 
