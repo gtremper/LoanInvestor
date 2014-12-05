@@ -29,21 +29,31 @@ class P2PPicks(lc.Api):
     """
     secrets: path to a json file containing sensitive information
     {
-      "api_key": "a+akdkj3kdfjkp3239", // Lending Club api key
-      "investor_id": 93234531,         // Lending Club investor id
-      "p2p_key": "87C2FE2B4843AD",     // P2P-Picks key
-      "p2p_secret": "ASDKFAJKSDF",     // P2P-Picks secret 
-      "p2p_portfolio_id": 34462030     // Portfolio id to assign
-    }                                              invested loans
+      "lc_api_key": "a+akdkj3kdfjkp3239", // Lending Club api key
+      "lc_investor_id": 93234531,         // Lending Club investor id
+      "lc_portfolio_id": 34462030     // Portfolio id to assign invested loans
+      "p2p_key": "87C2FE2B4843AD",    // P2P-Picks API key
+      "p2p_secret": "ASDKFAJKSDF",    // P2P-Picks API secret 
+      "p2p_email": "test@foo.com",    
+      "p2p_password": "12345
     """
     with open(secrets) as f:
       secrets = json.load(f)
       self.p2p_key = str(secrets['p2p_key'])
       self.p2p_secret = str(secrets['p2p_secret'])
-      self.p2p_portfolio_id = int(secrets['p2p_portfolio_id'])
+      self.p2p_email = str(secrets['p2p_email'])
+      self.p2p_password = str(secrets['p2p_password'])
+      self.lc_portfolio_id = int(secrets['lc_portfolio_id'])
 
-      investor_id = str(secrets['investor_id'])
-      api_key = str(secrets['api_key'])
+      self.p2p_session, activity = self.validate()
+
+      if activity != "active":
+        raise Exception("P2P-Picks account not active")
+
+      # Pass lending club secrets to lc API
+      # will set 'self.investor_id' and 'self.api_key'
+      investor_id = str(secrets['lc_investor_id'])
+      api_key = str(secrets['lc_api_key'])
       super(P2PPicks, self).__init__(investor_id, api_key)
 
   def request(self, method, action, data):
@@ -92,6 +102,24 @@ class P2PPicks(lc.Api):
     data = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'})
     return data['picks'], dateparser.parse(data['timestamp'])
 
+  def validate(self):
+    """
+    This method validates the P2P-Picks subscriber's email and
+    password and return key information about the P2P-Picks subscriber
+
+    Returns a tuple of
+      (p2p subscriber id, status)
+    """
+    data = self.request('subscriber', 'validate', {
+      "p2p_email": self.p2p_email,
+      "p2p_password": self.p2p_password
+    })
+
+    return str(data['sid']), str(data['status'])
+
+  def report(self, res):
+    pass
+
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
     while True:
@@ -133,56 +161,39 @@ class P2PPicks(lc.Api):
         continue
       return picks
 
-  def check_loans_available(self):
-    """
-    Poll for picks and check which of them are available
-    for investing.
-    """
-
-    picks = self.poll_for_update()
-    top = filter(lambda x: x['top'] == '5%', picks)
-
-    p2p_ids = set(int(i['loan_id']) for i in top)
-    print "top 5% ids"
-    print "P2P IDs:", p2p_ids
-
-    listed = set(x['id'] for x in self.listed_loans())
-
-    available = p2p_ids & listed
-    print dt.datetime.now().time()
-    print "Available:", available
-
-    print 
-    print "Polling for availability"
-    while True:
-      time.sleep(1)
-
-      listed = set(x['id'] for x in self.listed_loans())
-      print dt.datetime.now().time(), p2p_ids & listed
-
-  def invest(self, grades=set(['D','E','F'])):
+  def invest(self, grades=frozenset(['D','E','F'])):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
     """
     picks = self.poll_for_update()
-    top = [int(x['loan_id']) for x in picks if x['top'] == '5%' and x['grade'] in grades]
+    top = [int(x['loan_id']) for x in picks 
+                                if x['top'] == '5%' and x['grade'] in grades]
 
     if not top:
       print "No picks matching critera"
       return
 
     try:
-      res = self.submit_order(top)
+      res = self.submit_order(top, portfolioId=self.lc_portfolio_id)
     except urllib2.HTTPError as e:
       print e
       return
 
-    pprint.pprint(res)
+    # Report activity to P2P-Picks
+    self.report(res)
+
+  def process_order_response(self, res):
+    """
+    Process the JSON response of a call to "submit_order"
+    """
+
+
 
 def main():
   p2p = P2PPicks()
-  p2p.invest()
+  print p2p.validate()
+  #p2p.invest()
 
 if __name__ == '__main__':
   main()
