@@ -6,6 +6,7 @@ Invest in loans via using p2ppicks as an underwriter
 
 import lendingclub as lc
 import datetime as dt
+from datetime import datetime
 import dateutil.parser as dateparser
 import hashlib
 import json
@@ -162,7 +163,7 @@ class P2PPicks(lc.Api):
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
     while True:
-      call_time = dt.datetime.now()
+      call_time = datetime.now()
       try:
         yield self.list()
       except urllib2.HTTPError as err:
@@ -179,7 +180,7 @@ class P2PPicks(lc.Api):
         time.sleep(5)
 
       # Sleep until ready again
-      sleep_time = call_time - dt.datetime.now() + self.RATE_LIMIT
+      sleep_time = call_time - datetime.now() + self.RATE_LIMIT
       if sleep_time > dt.timedelta(0):
         time.sleep(sleep_time.total_seconds())
 
@@ -189,13 +190,13 @@ class P2PPicks(lc.Api):
     Must be called before picks update
     """
 
-    start = dt.datetime.now()
+    start = datetime.now()
     print "Starting poll at", start
 
     for i, (picks, timestamp) in enumerate(self.poll_picks()):
       if timestamp < start:
         if i % 10 == 0:
-          print dt.datetime.now().time()
+          print datetime.now().time()
         continue
       return picks
 
