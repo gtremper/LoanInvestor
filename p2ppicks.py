@@ -125,9 +125,13 @@ class P2PPicks(lc.Api):
 
     res: the json response to lc.Api.submit_order()
     """
+    # Return if passed empty list
+    if 'orderConfirmations' not in res:
+      return
+
     # Return if no notes invested
     if res['orderInstructId'] is None:
-      print "No orders successful"
+      print "No orders of {} successful".format(len(res['orderConfirmations']))
       return
 
     orders = res['orderConfirmations']
@@ -195,36 +199,74 @@ class P2PPicks(lc.Api):
         continue
       return picks
 
-  def invest(self, picks=None, ammount=25.0, grades=frozenset(['D','E','F'])):
+  def invest(self, load_ids, ammount=25.0):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
-    """
-    if picks is None:
-      picks = self.poll_for_update()
 
-    top = [int(x['loan_id']) for x in picks 
-                                if x['top'] == '5%' and x['grade'] in grades]
+    picks: a list of load ids to submit orders for
+    amount: ammount to invest per loan
+    grade: Loan grades to accept
+    """
 
     try:
       # Submit order and report activity to P2P-Picks
-      res = self.submit_order(top, ammount, self.lc_portfolio_id)
+      res = self.submit_order(load_ids, ammount, self.lc_portfolio_id)
       self.report(res)
     except urllib2.HTTPError as e:
       print e
 
-    print '${:.2f} cash remaining'.format(self.available_cash())
+    return res
+
+  def auto_invest(self, ammount=25.0, grades=frozenset(['D','E','F'])):
+    """
+    Attempt to reinvest unsuccessful loans, in case they later become
+    available
+    """
+    picks = self.poll_for_update()
+
+    top = [int(x['loan_id']) for x in picks 
+                                if x['top'] == '5%' and x['grade'] in grades]
+
+    if not top:
+      print "No matching picks"
+      pprint.pprint(picks)
+      return
+
+    res = self.invest(top, ammount)
+    available_cash = self.available_cash()
+
+    print '${:.2f} cash remaining'.format(available_cash)
     pprint.pprint(res)
     print
 
-    return res
+    # If we don't have enough cash for another loan, return
+    if available_cash < ammount:
+      return
+
+    # See if unavailable loans become available
+    # Continue waiting longer and longer as change
+    # for loans to become availible diminished
+    time.sleep(1)
+    for i in xrange(2,10):
+      # sleep a bit
+      orders = res['orderConfirmations']
+      unfulfilled = [x['loanId'] for x in orders
+                            if 'ORDER_FULFILLED' not in x['executionStatus']]
+
+      # We invested in all of our picks
+      if not unfulfilled:
+        return
+
+      self.invest(unfulfilled, ammount)
+
+      # sleep a bit
+      time.sleep(i)
 
 
 def main():
   p2p = P2PPicks()
-  res = p2p.invest()
-
-
+  res = p2p.auto_invest()
 
 if __name__ == '__main__':
   main()
