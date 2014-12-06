@@ -100,17 +100,17 @@ class P2PPicks(lc.Api):
     data = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'})
     return data['picks'], dateparser.parse(data['timestamp'])
 
-  def validate(self):
+  def validate(self, email, password):
     """
     This method validates the P2P-Picks subscriber's email and
     password and return key information about the P2P-Picks subscriber
 
     Returns a tuple of
-      (p2p subscriber id, status)
+      (p2p_subscriber_id, status)
     """
     data = self.request('subscriber', 'validate', {
-      "p2p_email": self.p2p_email,
-      "p2p_password": self.p2p_password
+      "p2p_email": email,
+      "p2p_password": password
     })
 
     return str(data['sid']), str(data['status'])
@@ -129,12 +129,12 @@ class P2PPicks(lc.Api):
     if 'orderConfirmations' not in res:
       return
 
+    orders = res['orderConfirmations']
+
     # Return if no notes invested
     if res['orderInstructId'] is None:
-      print "No orders of {} successful".format(len(res['orderConfirmations']))
+      print "0 orders of {} successful".format(len(orders))
       return
-
-    orders = res['orderConfirmations']
 
     # Create  list of successful orders
     picks = [{
@@ -208,7 +208,6 @@ class P2PPicks(lc.Api):
     amount: ammount to invest per loan
     grade: Loan grades to accept
     """
-
     try:
       # Submit order and report activity to P2P-Picks
       res = self.submit_order(load_ids, ammount, self.lc_portfolio_id)

@@ -15,11 +15,8 @@ class Api(object):
   Provides and interface to the LendingClub REST API
   https://www.lendingclub.com/developers/lc-api.action
   """
-  _API_VERSION = "v1"
-
   # Url for the loans resource
-  _LOAN_URL = "https://api.lendingclub.com/api/investor/{}/loans/listing"\
-              .format(_API_VERSION)
+  _LOAN_URL = "https://api.lendingclub.com/api/investor/v1/loans/listing"
 
   # Rate limit for the api
   RATE_LIMIT = dt.timedelta(seconds=1.0)
@@ -27,8 +24,8 @@ class Api(object):
   def __init__(self, investor_id, api_key):
     self.investor_id = investor_id
     self.api_key = api_key
-    self._base_url ='https://api.lendingclub.com/api/investor/{}/accounts/{}/{}'\
-                    .format(Api._API_VERSION, investor_id, '{}')
+    self._base_url ='https://api.lendingclub.com/api/investor/v1/accounts/{}/{}'\
+                    .format(investor_id, '{}')
 
   def _request_resource(self, resource, data=None):
     """Return json response to resource as dict
