@@ -13,7 +13,6 @@ import time
 import urllib
 import urllib2
 import pprint
-import random
 
 class P2PPicks(lc.Api):
   """
@@ -35,20 +34,16 @@ class P2PPicks(lc.Api):
       "lc_portfolio_id": 34462030     // Portfolio id to assign invested loans
       "p2p_key": "87C2FE2B4843AD",    // P2P-Picks API key
       "p2p_secret": "ASDKFAJKSDF",    // P2P-Picks API secret 
-      "p2p_email": "test@foo.com",    
-      "p2p_password": "12345
+      "p2p_sid": "384FBC34D3AB"      // P2P-Picks session ID    
     """
     with open(secrets) as f:
       secrets = json.load(f)
       self.p2p_key = str(secrets['p2p_key'])
       self.p2p_secret = str(secrets['p2p_secret'])
-      self.p2p_email = str(secrets['p2p_email'])
-      self.p2p_password = str(secrets['p2p_password'])
+      self.p2p_sid = str(secrets['p2p_sid'])
       self.lc_portfolio_id = int(secrets['lc_portfolio_id'])
 
-      self.p2p_session, activity = self.validate()
-
-      if activity != "active":
+      if not self.isActive():
         raise Exception("P2P-Picks account not active")
 
       # Pass lending club secrets to lc API
@@ -120,6 +115,10 @@ class P2PPicks(lc.Api):
 
     return str(data['sid']), str(data['status'])
 
+  def isActive(self):
+    data =self.request('subscriber', 'status', {'p2p_sid': self.p2p_sid})
+    return data['status'] == 'active'
+
   def report(self, res):
     """
     Report P2P-Picks usage.
@@ -142,7 +141,7 @@ class P2PPicks(lc.Api):
 
     # Build payload JSON object
     p2p_payload = [{
-      'sid': self.p2p_session,
+      'sid': self.p2p_sid,
       'picks': picks
     }]
 
@@ -196,12 +195,14 @@ class P2PPicks(lc.Api):
         continue
       return picks
 
-  def invest(self, ammount=25.0, grades=frozenset(['D','E','F'])):
+  def invest(self, picks=None, ammount=25.0, grades=frozenset(['D','E','F'])):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
     """
-    picks = self.poll_for_update()
+    if picks is None:
+      picks = self.poll_for_update()
+
     top = [int(x['loan_id']) for x in picks 
                                 if x['top'] == '5%' and x['grade'] in grades]
 
@@ -216,10 +217,14 @@ class P2PPicks(lc.Api):
     pprint.pprint(res)
     print
 
+    return res
+
 
 def main():
   p2p = P2PPicks()
-  p2p.invest()
+  res = p2p.invest()
+
+
 
 if __name__ == '__main__':
   main()

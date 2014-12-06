@@ -15,7 +15,6 @@ It should be a simple JSON object as follows
   "p2p_key": "21BF45C43EEFA",
   "p2p_secret": "ED559A9BA392B",
   "p2p_portfolio_id": 299948,
-  "p2p_email": "test@foo.com",
-  "p2p_password": "12345"
+  "p2p_sid": "45FB37D4AAB45B4E"
 }
 ```
