@@ -15,6 +15,7 @@ import urllib
 import urllib2
 import pprint
 import logging
+import os
 
 # Set up logging
 logger = logging.getLogger('P2P-Picks')
@@ -29,7 +30,7 @@ class P2PPicks(lc.Api):
   _BASE_URL = "https://www.p2p-picks.com/api/v1/{method}/{action}"
 
   # Rate limit for polling an endpoint
-  RATE_LIMIT = dt.timedelta(seconds=1.0)
+  P2P_RATE_LIMIT = dt.timedelta(seconds=1.0)
 
   # Investment configurations
   AMOUNT_PER_LOAN = 25.0
@@ -187,7 +188,7 @@ class P2PPicks(lc.Api):
         time.sleep(5)
 
       # Sleep until ready again
-      sleep_time = call_time - datetime.now() + self.RATE_LIMIT
+      sleep_time = call_time - datetime.now() + self.P2P_RATE_LIMIT
       if sleep_time > dt.timedelta(0):
         time.sleep(sleep_time.total_seconds())
 
@@ -201,7 +202,7 @@ class P2PPicks(lc.Api):
     logger.debug("Starting poll")
 
     for picks, timestamp in self.poll_picks():
-      if timestamp < start:
+      if timestamp > start:
         return picks
 
   def invest(self, load_ids):
@@ -293,10 +294,10 @@ class P2PPicks(lc.Api):
           logger.info('Successfully reattempt of ${} in loan {}'\
                         .format(amount_invested), order['loanId'])
 
-
 def main():
   # Set up logging
-  fh = logging.FileHandler('log.txt')
+  logfile = os.path.join(os.path.dirname(__file__), 'log.txt')
+  fh = logging.FileHandler(logfile)
   fh.setLevel(logging.INFO)
   ch = logging.StreamHandler()
   ch.setLevel(logging.DEBUG)
@@ -309,7 +310,8 @@ def main():
   logger.addHandler(fh)
 
   # Invest
-  p2p = P2PPicks()
+  secrets = os.path.join(os.path.dirname(__file__), 'data/secrets.json')
+  p2p = P2PPicks(secrets)
   res = p2p.auto_invest()
 
   # Log our final remaining ballance
