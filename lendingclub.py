@@ -19,13 +19,16 @@ class Api(object):
   _LOAN_URL = "https://api.lendingclub.com/api/investor/v1/loans/listing"
 
   # Rate limit for the api
-  RATE_LIMIT = dt.timedelta(seconds=1.0)
+  LC_RATE_LIMIT = dt.timedelta(seconds=1.0)
 
   def __init__(self, investor_id, api_key):
     self.investor_id = investor_id
     self.api_key = api_key
     self._base_url ='https://api.lendingclub.com/api/investor/v1/accounts/{}/{}'\
                     .format(investor_id, '{}')
+
+    # Last time an api call was made (for rate limiting)
+    self.last_api_call = dt.datetime(year=2000,month=1,day=1)
 
   def _request_resource(self, resource, data=None):
     """Return json response to resource as dict
@@ -40,6 +43,14 @@ class Api(object):
       req.add_header('Accept', 'application/json')
       req.add_header('Content-type', 'application/json')
       req.add_data(json.dumps(data, separators=(',',':')))
+
+    # Rate limit all api calls
+    sleep_time = self.last_api_call - dt.datetime.now() + self.LC_RATE_LIMIT
+    if sleep_time > dt.timedelta(0):
+      time.sleep(sleep_time.total_seconds())
+
+    # Update last call
+    self.last_api_call = dt.datetime.now()
 
     return json.load(urllib2.urlopen(req))
 
@@ -114,13 +125,17 @@ class Api(object):
 
 
 def main():
-  with open('data/investor_id.txt') as f:
-    investor_id = f.read()
-
-  with open('data/api_key.txt') as f:
-    api_key = f.read()
+  with open('data/secrets.json') as f:
+    secrets = json.load(f)
+    investor_id = secrets['lc_investor_id']
+    api_key = secrets['lc_api_key']
 
   api = Api(investor_id, api_key)
+
+  while True:
+    print dt.datetime.now(), len(api.listed_loans())
+
+  return
   print "\nCash"
   print api.available_cash()
   print "\nSummary"
