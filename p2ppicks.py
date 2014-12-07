@@ -14,6 +14,7 @@ import time
 import urllib
 import urllib2
 import pprint
+import logging
 
 class P2PPicks(lc.Api):
   """
@@ -134,7 +135,7 @@ class P2PPicks(lc.Api):
 
     # Return if no notes invested
     if res['orderInstructId'] is None:
-      print "0 orders of {} successful".format(len(orders))
+      logging.info("0 orders of {} successful".format(len(orders)))
       return
 
     # Create  list of successful orders
@@ -156,8 +157,8 @@ class P2PPicks(lc.Api):
 
     # Report to P2P-Picks
     res = self.request('subscriber', 'report', data)
-    print 'Invested ${} in {} of {} loans'\
-          .format(res['note_total'], len(picks), len(orders))
+    logging.info('Invested ${} in {} of {} loans'\
+          .format(res['note_total'], len(picks), len(orders)))
 
 
   def poll_picks(self):
@@ -167,16 +168,16 @@ class P2PPicks(lc.Api):
       try:
         yield self.list()
       except urllib2.HTTPError as err:
-        print "HTTPError: {}".format(err.code)
+        logging.error("HTTPError: {}".format(err.code))
         time.sleep(2)
       except urllib2.URLError as err:
-        print "URLError: {}".format(err.reason)
+        logging.error("URLError: {}".format(err.reason))
         time.sleep(2)
       except (KeyboardInterrupt,SystemExit) as err:
-        print "err", err
+        logging.error(err)
         return
       except Exception as err:
-        print "Other exception:", type(err), err
+        logging.critical("Other exception:", type(err), err)
         time.sleep(5)
 
       # Sleep until ready again
@@ -191,14 +192,11 @@ class P2PPicks(lc.Api):
     """
 
     start = datetime.now()
-    print "Starting poll at", start
+    logging.debug("Starting poll")
 
-    for i, (picks, timestamp) in enumerate(self.poll_picks()):
-      if timestamp < start:
-        if i % 10 == 0:
-          print datetime.now().time()
-        continue
-      return picks
+    for picks, timestamp in self.poll_picks():
+      if timestamp > start:
+        return picks
 
   def invest(self, load_ids, ammount=25.0):
     """
@@ -214,7 +212,7 @@ class P2PPicks(lc.Api):
       res = self.submit_order(load_ids, ammount, self.lc_portfolio_id)
       self.report(res)
     except urllib2.HTTPError as e:
-      print e
+      logging.error(e)
 
     return res
 
@@ -229,16 +227,15 @@ class P2PPicks(lc.Api):
                                 if x['top'] == '5%' and x['grade'] in grades]
 
     if not top:
-      print "No matching picks"
-      pprint.pprint(picks)
+      logging.info("No matching picks")
+      logging.debug(pprint.pformat(picks))
       return
 
     res = self.invest(top, ammount)
     available_cash = self.available_cash()
 
-    print '${:.2f} cash remaining'.format(available_cash)
-    pprint.pprint(res)
-    print
+    logging.info('${:.2f} cash remaining'.format(available_cash))
+    logging.debug(pprint.pformat(res))
 
     # If we don't have enough cash for another loan, return
     if available_cash < ammount:
@@ -269,4 +266,7 @@ def main():
   res = p2p.auto_invest()
 
 if __name__ == '__main__':
+  logging.basicConfig(level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s')
+
   main()
