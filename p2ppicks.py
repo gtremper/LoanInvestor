@@ -16,6 +16,10 @@ import urllib2
 import pprint
 import logging
 
+# Set up logging
+logger = logging.getLogger('P2P-Picks')
+logger.setLevel(logging.DEBUG)
+
 class P2PPicks(lc.Api):
   """
   Auto investor using P2P-Picks to underwrite loans
@@ -135,7 +139,7 @@ class P2PPicks(lc.Api):
 
     # Return if no notes invested
     if res['orderInstructId'] is None:
-      logging.info("0 orders of {} successful".format(len(orders)))
+      logger.debug("0 orders of {} successful".format(len(orders)))
       return
 
     # Create  list of successful orders
@@ -157,9 +161,8 @@ class P2PPicks(lc.Api):
 
     # Report to P2P-Picks
     res = self.request('subscriber', 'report', data)
-    logging.info('Invested ${} in {} of {} loans'\
+    logger.info('Invested ${} in {} of {} loans'\
           .format(res['note_total'], len(picks), len(orders)))
-
 
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
@@ -168,16 +171,16 @@ class P2PPicks(lc.Api):
       try:
         yield self.list()
       except urllib2.HTTPError as err:
-        logging.error("HTTPError: {}".format(err.code))
+        logger.error("HTTPError: {}".format(err.code))
         time.sleep(2)
       except urllib2.URLError as err:
-        logging.error("URLError: {}".format(err.reason))
+        logger.error("URLError: {}".format(err.reason))
         time.sleep(2)
       except (KeyboardInterrupt,SystemExit) as err:
-        logging.error(err)
+        logger.error(err)
         return
       except Exception as err:
-        logging.critical("Other exception:", type(err), err)
+        logger.critical("Other exception:", type(err), err)
         time.sleep(5)
 
       # Sleep until ready again
@@ -192,7 +195,7 @@ class P2PPicks(lc.Api):
     """
 
     start = datetime.now()
-    logging.debug("Starting poll")
+    logger.debug("Starting poll")
 
     for picks, timestamp in self.poll_picks():
       if timestamp > start:
@@ -212,7 +215,7 @@ class P2PPicks(lc.Api):
       res = self.submit_order(load_ids, ammount, self.lc_portfolio_id)
       self.report(res)
     except urllib2.HTTPError as e:
-      logging.error(e)
+      logger.error(e)
 
     return res
 
@@ -227,15 +230,15 @@ class P2PPicks(lc.Api):
                                 if x['top'] == '5%' and x['grade'] in grades]
 
     if not top:
-      logging.info("No matching picks")
-      logging.debug(pprint.pformat(picks))
+      logger.info("No matching picks")
+      logger.debug(pprint.pformat(picks))
       return
 
     res = self.invest(top, ammount)
     available_cash = self.available_cash()
 
-    logging.info('${:.2f} cash remaining'.format(available_cash))
-    logging.debug(pprint.pformat(res))
+    logger.debug(pprint.pformat(res))
+    logger.info('${:.2f} cash remaining'.format(available_cash))
 
     # If we don't have enough cash for another loan, return
     if available_cash < ammount:
@@ -264,9 +267,22 @@ class P2PPicks(lc.Api):
 def main():
   p2p = P2PPicks()
   res = p2p.auto_invest()
+  logger.info('${:.2f} cash remaining'.format(available_cash))
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s')
+  # Set up logging
+  # Debug level set for consol
+  # Info level set of log file
+  fh = logging.FileHandler('log.txt')
+  fh.setLevel(logging.INFO)
+  ch = logging.StreamHandler()
+  ch.setLevel(logging.DEBUG)
+  # create formatter and add it to the handlers
+  formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+  ch.setFormatter(formatter)
+  fh.setFormatter(formatter)
+  # add the handlers to logger
+  logger.addHandler(ch)
+  logger.addHandler(fh)
 
   main()

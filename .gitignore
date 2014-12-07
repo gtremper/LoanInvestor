@@ -53,6 +53,6 @@ coverage.xml
 docs/_build/
 
 # Local files
-new_loans.json
 secrets.json
+log.txt
 
