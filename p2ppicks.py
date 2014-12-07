@@ -183,7 +183,7 @@ class P2PPicks(lc.Api):
         logger.error("URLError: {}".format(err.reason))
         time.sleep(2)
       except (KeyboardInterrupt,SystemExit) as err:
-        logger.error(err)
+        # We're trying to quit
         return
       except Exception as err:
         logger.critical("Other exception:", type(err), err)
