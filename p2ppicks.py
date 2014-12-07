@@ -31,6 +31,11 @@ class P2PPicks(lc.Api):
   # Rate limit for polling an endpoint
   RATE_LIMIT = dt.timedelta(seconds=1.0)
 
+  # Investment configurations
+  AMOUNT_PER_LOAN = 25.0
+  GRADES = frozenset(['D','E','F'])
+  PICK_LEVEL = frozenset(['5%'])
+
   def __init__(self, secrets='data/secrets.json'):
     """
     secrets: path to a json file containing sensitive information
@@ -139,7 +144,6 @@ class P2PPicks(lc.Api):
 
     # Return if no notes invested
     if res['orderInstructId'] is None:
-      logger.debug("0 orders of {} successful".format(len(orders)))
       return
 
     # Create  list of successful orders
@@ -147,7 +151,7 @@ class P2PPicks(lc.Api):
       'product': 'profit-maximizer',
       'loan_id': int(order['loanId']),
       'note': int(order['investedAmount'])
-    } for order in orders if 'ORDER_FULFILLED' in order['executionStatus']]
+    } for order in orders if int(order['investedAmount'])]
 
     # Build payload JSON object
     p2p_payload = [{
@@ -160,9 +164,8 @@ class P2PPicks(lc.Api):
     }
 
     # Report to P2P-Picks
-    res = self.request('subscriber', 'report', data)
-    logger.info('Invested ${} in {} of {} loans'\
-          .format(res['note_total'], len(picks), len(orders)))
+    self.request('subscriber', 'report', data)
+
 
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
@@ -198,81 +201,101 @@ class P2PPicks(lc.Api):
     logger.debug("Starting poll")
 
     for picks, timestamp in self.poll_picks():
-      if timestamp > start:
+      if timestamp < start:
         return picks
 
-  def invest(self, load_ids, ammount=25.0):
+  def invest(self, load_ids):
     """
     Poll for P2P-Picks and invest in them
     Must be called before picks are updated
 
     picks: a list of load ids to submit orders for
-    amount: ammount to invest per loan
+    amount: amount to invest per loan
     grade: Loan grades to accept
     """
     try:
       # Submit order and report activity to P2P-Picks
-      res = self.submit_order(load_ids, ammount, self.lc_portfolio_id)
+      res = self.submit_order(load_ids,
+                  self.AMOUNT_PER_LOAN, self.lc_portfolio_id)
       self.report(res)
+      return res
     except urllib2.HTTPError as e:
       logger.error(e)
 
     return res
 
-  def auto_invest(self, ammount=25.0, grades=frozenset(['D','E','F'])):
+  def log_results(self, res):
+    """
+    Log details of investment response
+    response: Return value of self.invest()
+    """
+
+    if 'orderConfirmations' not in res:
+      logger.error('Attempted to invest in an empty list of loans')
+
+    for order in res['orderConfirmations']:
+      logger.info('Invested ${} in loan {}'
+                .format(int(order['investedAmount']), order['loanId']))
+
+
+  def auto_invest(self):
     """
     Attempt to reinvest unsuccessful loans, in case they later become
     available
     """
     picks = self.poll_for_update()
 
-    top = [int(x['loan_id']) for x in picks 
-                                if x['top'] == '5%' and x['grade'] in grades]
+    top = [int(x['loan_id']) for x in picks if x['top'] in self.PICK_LEVEL
+                                            and x['grade'] in self.GRADES]
 
     if not top:
       logger.info("No matching picks")
-      logger.debug(pprint.pformat(picks))
       return
 
-    res = self.invest(top, ammount)
-    available_cash = self.available_cash()
+    res = self.invest(top)
 
-    logger.debug(pprint.pformat(res))
-    logger.info('${:.2f} cash remaining'.format(available_cash))
+    # log results
+    logger.debug(pprint.pformat(picks))
+    self.log_results(res)
 
-    # If we don't have enough cash for another loan, return
-    if available_cash < ammount:
-      return
+    self.reattempt_invest(res)
 
+
+  def reattempt_invest(self, res):
+    """
     # See if unavailable loans become available
-    # Continue waiting longer and longer as change
+    # Continue waiting longer and longer as chance
     # for loans to become availible diminished
-    time.sleep(1)
-    for i in xrange(2,10):
+
+    res: Response from previous investment attempt
+    """
+    for i in xrange(1,15):
+      # Check if we have enough cash
+      if self.available_cash() < self.AMOUNT_PER_LOAN:
+        return
+
       # sleep a bit
-      orders = res['orderConfirmations']
-      unfulfilled = [x['loanId'] for x in orders
-                            if 'ORDER_FULFILLED' not in x['executionStatus']]
+      time.sleep(i)
+      
+      unfulfilled = [order['loanId'] for order in res['orderConfirmations']
+                                      if not int(order['investedAmount'])]
 
       # We invested in all of our picks
       if not unfulfilled:
         return
 
-      self.invest(unfulfilled, ammount)
+      res = self.invest(unfulfilled)
 
-      # sleep a bit
-      time.sleep(i)
+      # Log any succesful orders
+      for order in res['orderConfirmations']:
+        amount_invested = int(order['investedAmount'])
+        if amount_invested:
+          logger.info('Successfully reattempt of ${} in loan {}'\
+                        .format(amount_invested), order['loanId'])
 
 
 def main():
-  p2p = P2PPicks()
-  res = p2p.auto_invest()
-  logger.info('${:.2f} cash remaining'.format(available_cash))
-
-if __name__ == '__main__':
   # Set up logging
-  # Debug level set for consol
-  # Info level set of log file
   fh = logging.FileHandler('log.txt')
   fh.setLevel(logging.INFO)
   ch = logging.StreamHandler()
@@ -285,4 +308,12 @@ if __name__ == '__main__':
   logger.addHandler(ch)
   logger.addHandler(fh)
 
+  # Invest
+  p2p = P2PPicks()
+  res = p2p.auto_invest()
+
+  # Log our final remaining ballance
+  logger.info('Done. ${:.2f} cash remaining'.format(p2p.available_cash()))
+
+if __name__ == '__main__':
   main()
