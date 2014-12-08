@@ -253,15 +253,17 @@ class P2PPicks(lc.Api):
 
     if not top:
       logger.info("No matching picks")
-      return
+    else:
+      res = self.invest(top)
 
-    res = self.invest(top)
+      # log results
+      logger.debug(pprint.pformat(picks))
+      self.log_results(res)
 
-    # log results
-    logger.debug(pprint.pformat(picks))
-    self.log_results(res)
+      self.reattempt_invest(res)
 
-    self.reattempt_invest(res)
+    # Log our final remaining ballance
+    logger.info('Done. ${:.2f} cash remaining'.format(self.available_cash()))
 
 
   def reattempt_invest(self, res):
@@ -318,9 +320,6 @@ def main():
   secrets = os.path.join(os.path.dirname(__file__), 'data/secrets.json')
   p2p = P2PPicks(secrets)
   res = p2p.auto_invest()
-
-  # Log our final remaining ballance
-  logger.info('Done. ${:.2f} cash remaining'.format(p2p.available_cash()))
 
 if __name__ == '__main__':
   main()
