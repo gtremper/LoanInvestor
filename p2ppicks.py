@@ -227,18 +227,26 @@ class P2PPicks(lc.Api):
 
     return res
 
-  def log_results(self, res):
+  def log_results(self, res, picks):
     """
     Log details of investment response
     response: Return value of self.invest()
+    picks: Return value of self.poll_for_update()
     """
+
+    # Create map of loan id's to grade
+    id_to_grade = {}
+    for pick in picks:
+      id_to_grade[int(pick['loan_id'])] = pick['grade']
 
     if 'orderConfirmations' not in res:
       logger.error('Attempted to invest in an empty list of loans')
 
     for order in res['orderConfirmations']:
-      logger.info('Invested ${} in loan {}'
-                .format(int(order['investedAmount']), order['loanId']))
+      loanID = int(order['loanId'])
+      grade = id_to_grade[loanID]
+      logger.info('Invested ${} in grade {} loan {}'
+                .format(int(order['investedAmount']), grade, loanID))
 
 
   def auto_invest(self):
@@ -258,7 +266,7 @@ class P2PPicks(lc.Api):
 
       # log results
       logger.debug(pprint.pformat(picks))
-      self.log_results(res)
+      self.log_results(res, picks)
 
       self.reattempt_invest(res)
 
