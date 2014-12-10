@@ -16,6 +16,7 @@ import urllib2
 import pprint
 import logging
 import os
+from optparse import OptionParser
 
 # Set up logging
 logger = logging.getLogger('P2P-Picks')
@@ -205,6 +206,7 @@ class P2PPicks(lc.Api):
 
     for picks, timestamp in self.poll_picks():
       if timestamp > start:
+        logger.info("New picks")
         return picks
 
   def invest(self, load_ids):
@@ -249,12 +251,13 @@ class P2PPicks(lc.Api):
                 .format(int(order['investedAmount']), grade, loanID))
 
 
-  def auto_invest(self):
+  def auto_invest(self, picks=None):
     """
     Attempt to reinvest unsuccessful loans, in case they later become
     available
     """
-    picks = self.poll_for_update()
+    if picks is None:
+      picks = self.poll_for_update()
 
     top = [int(x['loan_id']) for x in picks if x['top'] in self.PICK_LEVEL
                                             and x['grade'] in self.GRADES]
@@ -290,6 +293,7 @@ class P2PPicks(lc.Api):
       # sleep a bit
       time.sleep(5)
       
+      # Loans we haven't successfully invested in
       unfulfilled = [order['loanId'] for order in res['orderConfirmations']
                                       if not int(order['investedAmount'])]
 
@@ -321,13 +325,24 @@ def init_logging():
   logger.addHandler(fh)
 
 def main():
+  #parse arguments
+  parser = OptionParser()
+  parser.add_option('-p', '--poll', action='store_true', 
+    dest='poll', default=False, help="Poll for updated picks")
+  (options, args) = parser.parse_args()
+
   # Set up logging
   init_logging()
 
-  # Invest
+  # Set up auto investor
   secrets = os.path.join(os.path.dirname(__file__), 'data/secrets.json')
   p2p = P2PPicks(secrets)
-  res = p2p.auto_invest()
+
+  if options.poll:
+    res = p2p.auto_invest()
+  else:
+    picks, timestamp = p2p.list()
+    res = p2p.auto_invest(picks)
 
 if __name__ == '__main__':
   main()
