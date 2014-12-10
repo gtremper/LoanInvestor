@@ -282,13 +282,13 @@ class P2PPicks(lc.Api):
 
     res: Response from previous investment attempt
     """
-    for i in xrange(1,15):
+    for i in xrange(120):
       # Check if we have enough cash
       if self.available_cash() < self.AMOUNT_PER_LOAN:
         return
 
       # sleep a bit
-      time.sleep(i)
+      time.sleep(5)
       
       unfulfilled = [order['loanId'] for order in res['orderConfirmations']
                                       if not int(order['investedAmount'])]
@@ -304,7 +304,7 @@ class P2PPicks(lc.Api):
         amount_invested = int(order['investedAmount'])
         if amount_invested:
           logger.info('Successfully reattempt of ${} in loan {}'\
-                        .format(amount_invested), order['loanId'])
+                      .format(amount_invested, order['loanId']))
 
 def init_logging():
   logfile = os.path.join(os.path.dirname(__file__), 'log.txt')
