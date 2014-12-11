@@ -285,21 +285,24 @@ class P2PPicks(lc.Api):
 
     res: Response from previous investment attempt
     """
-    for i in xrange(120):
+    start = datetime.now()
+    WAIT_TIME = dt.timedelta(minutes=20)
+
+    while datetime.now()-start < WAIT_TIME:
       # Check if we have enough cash
       if self.available_cash() < self.AMOUNT_PER_LOAN:
-        return
+        break
 
-      # sleep a bit
-      time.sleep(5)
-      
       # Loans we haven't successfully invested in
       unfulfilled = [order['loanId'] for order in res['orderConfirmations']
                                       if not int(order['investedAmount'])]
 
       # We invested in all of our picks
       if not unfulfilled:
-        return
+        break
+
+      # sleep a bit
+      time.sleep(5)
 
       res = self.invest(unfulfilled)
 
@@ -307,32 +310,37 @@ class P2PPicks(lc.Api):
       for order in res['orderConfirmations']:
         amount_invested = int(order['investedAmount'])
         if amount_invested:
-          logger.info('Successfully reattempt of ${} in loan {}'\
+          logger.info('Successful reattempt of ${} in loan {}'\
                       .format(amount_invested, order['loanId']))
 
-def init_logging():
-  logfile = os.path.join(os.path.dirname(__file__), 'log.txt')
-  fh = logging.FileHandler(logfile)
-  fh.setLevel(logging.INFO)
-  ch = logging.StreamHandler()
-  ch.setLevel(logging.DEBUG)
+def init_logging(logfile):
   # create formatter and add it to the handlers
   formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+  # Log "info" to file
+  if logfile is not None:
+    fh = logging.FileHandler(logfile)
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.INFO)
+    logger.addHandler(fh)
+
+  # Log to console
+  ch = logging.StreamHandler()
   ch.setFormatter(formatter)
-  fh.setFormatter(formatter)
-  # add the handlers to logger
+  ch.setLevel(logging.DEBUG)
   logger.addHandler(ch)
-  logger.addHandler(fh)
 
 def main():
   #parse arguments
   parser = OptionParser()
   parser.add_option('-p', '--poll', action='store_true', 
     dest='poll', default=False, help="Poll for updated picks")
+  parser.add_option('-l', '--log', action='store',
+    dest='logfile', type='string', help="Log activity to file")
   (options, args) = parser.parse_args()
 
   # Set up logging
-  init_logging()
+  init_logging(options.logfile)
 
   # Set up auto investor
   secrets = os.path.join(os.path.dirname(__file__), 'data/secrets.json')
