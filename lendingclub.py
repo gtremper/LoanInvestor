@@ -31,8 +31,8 @@ class Api(object):
     investor_id: LendingClub investor investor_id
     api_key: LendingClub api key
     """
-    self.investor_id = investor_id
-    self.api_key = api_key
+    self.lc_investor_id = investor_id
+    self.lc_api_key = api_key
 
     # Url for all account actions
     self._base_url ='https://api.lendingclub.com/api/investor/v1/accounts/{}/{}'\
@@ -49,7 +49,7 @@ class Api(object):
     data -- json payload for the request
     """
     req = urllib2.Request(self._base_url.format(resource))
-    req.add_header('Authorization', self.api_key)
+    req.add_header('Authorization', self.lc_api_key)
 
     if data is not None:
       req.add_header('Accept', 'application/json')
@@ -95,7 +95,7 @@ class Api(object):
   def create_portfolio(self, name, desc=""):
     """Create a new portfolio"""
     payload = {
-      "aid": int(self.investor_id),
+      "aid": int(self.lc_investor_id),
       "portfolioName": name,
       "portfolioDescription": desc
     }
@@ -109,7 +109,7 @@ class Api(object):
     portfolioId -- The portfolio to assign notes to
     """
     payload = {}
-    payload['aid'] = int(self.investor_id)
+    payload['aid'] = int(self.lc_investor_id)
     payload['orders']= [{
       "loanId": int(lid),
       "requestedAmount": float(ammount),
@@ -130,7 +130,7 @@ class Api(object):
       (Api._LOAN_URL + "?showAll=true") if showAll else Api._LOAN_URL
     )
 
-    req.add_header('Authorization', self.api_key)
+    req.add_header('Authorization', self.lc_api_key)
 
     data = json.load(urllib2.urlopen(req))
     return data['loans']
