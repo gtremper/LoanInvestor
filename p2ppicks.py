@@ -102,6 +102,7 @@ class API:
     return str(data['sid']), str(data['status'])
 
   def isActive(self):
+    """ Return True if user has picks activated """
     data =self._request('subscriber', 'status', {'p2p_sid': self.p2p_sid})
     return data['status'] == 'active'
 

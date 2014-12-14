@@ -40,32 +40,12 @@ class AutoInvestor:
     {
       "lc_api_key": "a+akdkj3kdfjkp3239", // Lending Club api key
       "lc_investor_id": 93234531,         // Lending Club investor id
-      "lc_portfolio_id": 34462030     // Portfolio id to assign invested loans
+      "lc_portfolio": "MyPortfolio"     // Portfolio name to assign invested loans
       "p2p_key": "87C2FE2B4843AD",    // P2P-Picks API key
       "p2p_secret": "ASDKFAJKSDF",    // P2P-Picks API secret 
       "p2p_sid": "384FBC34D3AB"      // P2P-Picks session ID
     }
     """
-    #
-    # Initalize configurations
-    # 
-    with open(secrets) as f:
-      secrets = json.load(f)
-      p2p_key = str(secrets['p2p_key'])
-      p2p_secret = str(secrets['p2p_secret'])
-      p2p_sid = str(secrets['p2p_sid'])
-      lc_investor_id = str(secrets['lc_investor_id'])
-      lc_api_key = str(secrets['lc_api_key'])
-
-      # Portfolio to place invested loans
-      self.lc_portfolio_id = int(secrets['lc_portfolio_id'])
-
-    # Pass lending club secrets to lc.API
-    self.lc = lc.API(lc_investor_id, lc_api_key)
-
-    # Pass P2P-Picks secrets to p2p.API
-    self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
-
     #
     # Set up logging
     #
@@ -88,6 +68,35 @@ class AutoInvestor:
     ch.setFormatter(formatter)
     ch.setLevel(logging.DEBUG)
     self.logger.addHandler(ch)
+
+    #
+    # Initalize configurations
+    # 
+
+    with open(secrets) as f:
+      secrets = json.load(f)
+      p2p_key = str(secrets['p2p_key'])
+      p2p_secret = str(secrets['p2p_secret'])
+      p2p_sid = str(secrets['p2p_sid'])
+      lc_investor_id = str(secrets['lc_investor_id'])
+      lc_api_key = str(secrets['lc_api_key'])
+
+      # Pass lending club secrets to lc.API
+      self.lc = lc.API(lc_investor_id, lc_api_key)
+
+      # Pass P2P-Picks secrets to p2p.API
+      self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
+
+      # Get portfolio ID from name if it exists
+      self.lc_portfolio_id = None
+      for portfolio in self.lc.portfolios_owned():
+        if portfolio['portfolioName'] == secrets['lc_portfolio']:
+          self.lc_portfolio_id = int(portfolio['portfolioId'])
+          break
+
+      if self.lc_portfolio_id is None:
+        self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
+                            .format(secrets['lc_portfolio']))
 
   def poll_picks(self):
     """Generator of currently listed picks"""
