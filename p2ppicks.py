@@ -15,7 +15,6 @@ import urllib
 import urllib2
 import pprint
 import logging
-import os
 from optparse import OptionParser
 
 # Set up logging
@@ -38,7 +37,7 @@ class P2PPicks(lc.Api):
   GRADES = frozenset(['D','E','F'])
   PICK_LEVEL = frozenset(['5%'])
 
-  def __init__(self, secrets='data/secrets.json'):
+  def __init__(self, secrets='secrets.json'):
     """
     secrets: path to a json file containing sensitive information
     {
@@ -343,8 +342,7 @@ def main():
   init_logging(options.logfile)
 
   # Set up auto investor
-  secrets = os.path.join(os.path.dirname(__file__), 'data/secrets.json')
-  p2p = P2PPicks(secrets)
+  p2p = P2PPicks()
 
   if options.poll:
     res = p2p.auto_invest()
