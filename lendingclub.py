@@ -5,15 +5,15 @@ Wrapper of all LendingClub API endpoints. Required rate-limiting
 of API calls is handled automatically.
 """
 
-import urllib2
-import json
 import datetime as dt
-import time
+import json
 import pprint
+import time
+import urllib2
 
-__all__ = ['Api']
+__all__ = ['API']
 
-class Api(object):
+class API(object):
   """
   Provides and interface to the LendingClub REST API
   https://www.lendingclub.com/developers/lc-api.action

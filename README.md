@@ -1,7 +1,7 @@
 p2p-picks
 ===========
 
-LendingClub and P2P-Picks API library. Provides wrapper functions
+Unoffical LendingClub and P2P-Picks API library. Provides wrapper functions
 to all available API endpoints.
 
 ## secrets.json
