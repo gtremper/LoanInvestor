@@ -26,7 +26,7 @@ class API:
     """
     key: P2P-Picks API key
     secret: P2P-Picks API secret
-    sessionid: P2P-Picks session id for this user
+    session_id: P2P-Picks session id for this user
     """
 
     # Store secrets
@@ -38,7 +38,7 @@ class API:
     if not self.isActive():
       raise Exception("P2P-Picks account not active")
 
-  def request(self, method, action, data):
+  def _request(self, method, action, data):
     """
     Request P2P-Picks REST endpoint
     Returns: JSON response with meta data removed
@@ -83,7 +83,7 @@ class API:
       "top": "5%"
     }
     """
-    data = self.request('picks', 'list', {'p2p_product': 'profit-maximizer'})
+    data = self._request('picks', 'list', {'p2p_product': 'profit-maximizer'})
     return data['picks'], dateparser.parse(data['timestamp'])
 
   def validate(self, email, password):
@@ -94,7 +94,7 @@ class API:
     Returns a tuple of
       (p2p_subscriber_id, status)
     """
-    data = self.request('subscriber', 'validate', {
+    data = self._request('subscriber', 'validate', {
       "p2p_email": email,
       "p2p_password": password
     })
@@ -102,7 +102,7 @@ class API:
     return str(data['sid']), str(data['status'])
 
   def isActive(self):
-    data =self.request('subscriber', 'status', {'p2p_sid': self.p2p_sid})
+    data =self._request('subscriber', 'status', {'p2p_sid': self.p2p_sid})
     return data['status'] == 'active'
 
   def report(self, res):
@@ -139,7 +139,7 @@ class API:
     }
 
     # Report to P2P-Picks
-    self.request('subscriber', 'report', data)
+    self._request('subscriber', 'report', data)
 
 def main():
   # standard secrets file location

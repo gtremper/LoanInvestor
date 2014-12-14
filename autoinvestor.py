@@ -17,6 +17,8 @@ import urllib2
 import urllib2
 from optparse import OptionParser
 
+__all__ = ['AutoInvestor']
+
 class AutoInvestor:
   """
   Auto investor for LendingClub using P2P-Picks to underwrite loans
@@ -68,7 +70,7 @@ class AutoInvestor:
     # Set up logging
     #
      
-    self.logger = logging.getLogger('P2P-Picks')
+    self.logger = logging.getLogger('AutoInvestor')
     self.logger.setLevel(logging.DEBUG)
 
     # create formatter
@@ -107,7 +109,7 @@ class AutoInvestor:
 
   def poll_for_update(self):
     """
-    Start polling for and update in listed P2P-Picks
+    Start polling for an update in listed P2P-Picks
     Must be called before picks update
     """
 
@@ -121,12 +123,12 @@ class AutoInvestor:
 
   def invest(self, load_ids):
     """
-    Poll for P2P-Picks and invest in them
-    Must be called before picks are updated
+    Attept to invest in loans by id. Reports
+    successful investments to P2P-Picks.
 
-    picks: a list of load ids to submit orders for
-    amount: amount to invest per loan
-    grade: Loan grades to accept
+    load_ids: a list of loan ids
+
+    Returns: JSON reponse from lending club
     """
     try:
       # Submit order and report activity to P2P-Picks
@@ -142,7 +144,8 @@ class AutoInvestor:
   def log_results(self, res, picks):
     """
     Log details of investment response
-    response: Return value of self.invest()
+
+    res: Return value of self.invest()
     picks: Return value of self.poll_for_update()
     """
 
@@ -194,16 +197,14 @@ class AutoInvestor:
 
   def reattempt_invest(self, res):
     """
-    # See if unavailable loans become available
-    # Continue waiting longer and longer as chance
-    # for loans to become availible diminished
+    Attept to reinvest in unsuccessful orders.
 
-    res: Response from previous investment attempt
+    res: Response from an investement attempt (self.invest())
     """
     start = dt.datetime.now()
     WAIT_TIME = dt.timedelta(minutes=20)
 
-    while dt.datetime.now()-start < WAIT_TIME:
+    while dt.datetime.now() - start < WAIT_TIME:
       # Check if we have enough cash
       if self.available_cash() < self.AMOUNT_PER_LOAN:
         break
