@@ -6,23 +6,24 @@ Automated LendingClub investor using P2P-Picks for underwriting
 
 import lendingclub as lc
 import p2ppicks as p2p
+
 import datetime as dt
 import dateutil.parser as dateparser
 import json
-import time
-import pprint
 import logging
-from optparse import OptionParser
+import pprint
+import time
 import urllib2
-
-# Set up logging
-logger = logging.getLogger('P2P-Picks')
-logger.setLevel(logging.DEBUG)
+import urllib2
+from optparse import OptionParser
 
 class AutoInvestor:
   """
   Auto investor for LendingClub using P2P-Picks to underwrite loans
   https://www.p2p-picks.com/
+
+  self.lc: An instance of the LendingClub API
+  self.p2p: An instance of the P2P-Picks API
   """
 
   # Investment configurations
@@ -30,9 +31,10 @@ class AutoInvestor:
   GRADES = frozenset(['D','E','F'])
   PICK_LEVEL = frozenset(['5%'])
 
-  def __init__(self, secrets='secrets.json'):
+  def __init__(self, secrets='secrets.json', logfile=None):
     """
     secrets: path to a json file containing sensitive information
+    logfile: path a logfile to append logging information
     {
       "lc_api_key": "a+akdkj3kdfjkp3239", // Lending Club api key
       "lc_investor_id": 93234531,         // Lending Club investor id
@@ -42,6 +44,9 @@ class AutoInvestor:
       "p2p_sid": "384FBC34D3AB"      // P2P-Picks session ID
     }
     """
+    #
+    # Initalize configurations
+    # 
     with open(secrets) as f:
       secrets = json.load(f)
       p2p_key = str(secrets['p2p_key'])
@@ -49,16 +54,38 @@ class AutoInvestor:
       p2p_sid = str(secrets['p2p_sid'])
       lc_investor_id = str(secrets['lc_investor_id'])
       lc_api_key = str(secrets['lc_api_key'])
-      lc_portfolio_id = int(secrets['lc_portfolio_id'])
-
-      # Pass lending club secrets to lc.API
-      self.lc = lc.API(lc_investor_id, lc_api_key)
-
-      # Pass P2P-Picks secrets to p2p.API
-      self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
 
       # Portfolio to place invested loans
       self.lc_portfolio_id = int(secrets['lc_portfolio_id'])
+
+    # Pass lending club secrets to lc.API
+    self.lc = lc.API(lc_investor_id, lc_api_key)
+
+    # Pass P2P-Picks secrets to p2p.API
+    self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
+
+    #
+    # Set up logging
+    #
+     
+    self.logger = logging.getLogger('P2P-Picks')
+    self.logger.setLevel(logging.DEBUG)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+    # Log "info" to file
+    if logfile is not None:
+      fh = logging.FileHandler(logfile)
+      fh.setFormatter(formatter)
+      fh.setLevel(logging.INFO)
+      self.logger.addHandler(fh)
+
+    # Log to console
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    ch.setLevel(logging.DEBUG)
+    self.logger.addHandler(ch)
 
   def poll_picks(self):
     """Generator of currently listed picks"""
@@ -66,16 +93,16 @@ class AutoInvestor:
       try:
         yield self.p2p.picks()
       except urllib2.HTTPError as err:
-        logger.error("HTTPError: {}".format(err.code))
+        self.logger.error("HTTPError: {}".format(err.code))
         time.sleep(2)
       except urllib2.URLError as err:
-        logger.error("URLError: {}".format(err.reason))
+        self.logger.error("URLError: {}".format(err.reason))
         time.sleep(2)
       except (KeyboardInterrupt,SystemExit) as err:
         # We're trying to quit
         return
       except Exception as err:
-        logger.critical("Other exception:", type(err), err)
+        self.logger.critical("Other exception:", type(err), err)
         time.sleep(5)
 
   def poll_for_update(self):
@@ -85,11 +112,11 @@ class AutoInvestor:
     """
 
     start = dt.datetime.now()
-    logger.debug("Starting poll")
+    self.logger.debug("Starting poll")
 
     for picks, timestamp in self.poll_picks():
       if timestamp > start:
-        logger.info("New picks")
+        self.logger.info("New picks")
         return picks
 
   def invest(self, load_ids):
@@ -108,7 +135,7 @@ class AutoInvestor:
       self.p2p.report(res)
       return res
     except urllib2.HTTPError as e:
-      logger.error(e)
+      self.logger.error(e)
 
     return res
 
@@ -125,12 +152,12 @@ class AutoInvestor:
       id_to_grade[int(pick['loan_id'])] = pick['grade']
 
     if 'orderConfirmations' not in res:
-      logger.error('Attempted to invest in an empty list of loans')
+      self.logger.error('Attempted to invest in an empty list of loans')
 
     for order in res['orderConfirmations']:
       loanID = int(order['loanId'])
       grade = id_to_grade[loanID]
-      logger.info('Invested ${} in grade {} loan {}'
+      self.logger.info('Invested ${} in grade {} loan {}'
                 .format(int(order['investedAmount']), grade, loanID))
 
 
@@ -146,18 +173,18 @@ class AutoInvestor:
                                             and x['grade'] in self.GRADES]
 
     if not top:
-      logger.info("No matching picks")
+      self.logger.info("No matching picks")
     else:
       res = self.invest(top)
 
       # log results
-      logger.debug(pprint.pformat(picks))
+      self.logger.debug(pprint.pformat(picks))
       self.log_results(res, picks)
 
       self.reattempt_invest(res)
 
     # Log our final remaining ballance
-    logger.info('Done. ${:.2f} cash remaining'.format(self.lc.available_cash()))
+    self.logger.info('Done. ${:.2f} cash remaining'.format(self.lc.available_cash()))
 
 
   def reattempt_invest(self, res):
@@ -193,25 +220,8 @@ class AutoInvestor:
       for order in res['orderConfirmations']:
         amount_invested = int(order['investedAmount'])
         if amount_invested:
-          logger.info('Successful reattempt of ${} in loan {}'\
+          self.logger.info('Successful reattempt of ${} in loan {}'\
                       .format(amount_invested, order['loanId']))
-
-def init_logging(logfile):
-  # create formatter and add it to the handlers
-  formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-  # Log "info" to file
-  if logfile is not None:
-    fh = logging.FileHandler(logfile)
-    fh.setFormatter(formatter)
-    fh.setLevel(logging.INFO)
-    logger.addHandler(fh)
-
-  # Log to console
-  ch = logging.StreamHandler()
-  ch.setFormatter(formatter)
-  ch.setLevel(logging.DEBUG)
-  logger.addHandler(ch)
 
 def main():
   #parse arguments
@@ -224,13 +234,12 @@ def main():
   # '--log' specifies a log file to which we should append logs
   parser.add_option('-l', '--log', action='store',
     dest='logfile', type='string', help="Log activity to file")
+
+  # Collect options
   options, args = parser.parse_args()
 
-  # Set up logging
-  init_logging(options.logfile)
-
   # Set API's with account information
-  investor = AutoInvestor()
+  investor = AutoInvestor(logfile=options.logfile)
 
   # Poll for new picks is '--poll' option provided
   # Otherwise, use current picks
