@@ -215,7 +215,7 @@ class AutoInvestor:
 
     while dt.datetime.now() - start < WAIT_TIME:
       # Check if we have enough cash
-      if self.available_cash() < self.AMOUNT_PER_LOAN:
+      if self.lc.available_cash() < self.AMOUNT_PER_LOAN:
         break
 
       # Loans we haven't successfully invested in
