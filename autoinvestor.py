@@ -107,7 +107,7 @@ class AutoInvestor:
         self.logger.critical("Other exception:", type(err), err)
         time.sleep(5)
 
-  def poll_for_update(self):
+  def wait_for_new_picks(self):
     """
     Start polling for an update in listed P2P-Picks
     Must be called before picks update
@@ -173,7 +173,7 @@ class AutoInvestor:
           False if we want to use the current picks
     """
     if poll:
-      picks = self.poll_for_update()
+      picks = self.wait_for_new_picks()
     else:
       picks, _ = self.p2p.picks()
 
