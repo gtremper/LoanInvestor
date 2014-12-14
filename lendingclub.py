@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+"""
+Wrapper of all LendingClub API endpoints. Required rate-limiting
+of API calls is handled automatically.
+"""
+
 import urllib2
 import json
 import datetime as dt

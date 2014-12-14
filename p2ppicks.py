@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 """
-Invest in loans via using p2ppicks as an underwriter
+Wrapper for the P2P-Picks api.
+(Also includes LendingClub api)
 """
 
 import lendingclub as lc
@@ -28,9 +29,6 @@ class P2PPicks(lc.Api):
   """
 
   _BASE_URL = "https://www.p2p-picks.com/api/v1/{method}/{action}"
-
-  # Rate limit for polling an endpoint
-  P2P_RATE_LIMIT = dt.timedelta(seconds=0.1)
 
   # Investment configurations
   AMOUNT_PER_LOAN = 25.0
@@ -173,7 +171,6 @@ class P2PPicks(lc.Api):
   def poll_picks(self):
     """Rate limited generator of currently listed picks"""
     while True:
-      call_time = datetime.now()
       try:
         yield self.list()
       except urllib2.HTTPError as err:
@@ -188,11 +185,6 @@ class P2PPicks(lc.Api):
       except Exception as err:
         logger.critical("Other exception:", type(err), err)
         time.sleep(5)
-
-      # Sleep until ready again
-      sleep_time = call_time - datetime.now() + self.P2P_RATE_LIMIT
-      if sleep_time > dt.timedelta(0):
-        time.sleep(sleep_time.total_seconds())
 
   def poll_for_update(self):
     """
@@ -332,18 +324,24 @@ def init_logging(logfile):
 def main():
   #parse arguments
   parser = OptionParser()
+
+  # '--poll' indicates we should poll for new picks
   parser.add_option('-p', '--poll', action='store_true', 
     dest='poll', default=False, help="Poll for updated picks")
+
+  # '--log' specifies a log file to which we should append logs
   parser.add_option('-l', '--log', action='store',
     dest='logfile', type='string', help="Log activity to file")
-  (options, args) = parser.parse_args()
+  options, args = parser.parse_args()
 
   # Set up logging
   init_logging(options.logfile)
 
-  # Set up auto investor
+  # Set API's with account information
   p2p = P2PPicks()
 
+  # Poll for new picks is '--poll' option provided
+  # Otherwise, use current picks
   if options.poll:
     res = p2p.auto_invest()
   else:
