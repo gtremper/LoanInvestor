@@ -1,7 +1,8 @@
-LendingClub
+p2p-picks
 ===========
 
-Lending Club loan analyzer and auto-investor
+LendingClub and P2P-Picks API library. Provides wrapper functions
+to all available API endpoints.
 
 ## secrets.json
 
@@ -10,11 +11,11 @@ It should be a simple JSON object as follows
 
 ```
 {
-  "api_key": "aajsufh8fhaio8i3jrh", //lending club
-  "investor_id": 13748291,          //lending club
+  "lc_api_key": "aajsufh8fhaio8i3jrh", //lending club
+  "lc_investor_id": 13748291,          //lending club
+  "lc_portfolio_id": 299948, // LendingClub portfolio to use
   "p2p_key": "21BF45C43EEFA",
   "p2p_secret": "ED559A9BA392B",
-  "p2p_portfolio_id": 299948,
   "p2p_sid": "45FB37D4AAB45B4E"
 }
 ```

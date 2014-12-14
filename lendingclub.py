@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-import urllib
 import urllib2
 import json
 import datetime as dt
-import dateutil.parser as dateparser
 import time
-import numpy as np
-import re
+import pprint
 
 __all__ = ['Api']
 
@@ -18,12 +15,20 @@ class Api(object):
   # Url for the loans resource
   _LOAN_URL = "https://api.lendingclub.com/api/investor/v1/loans/listing"
 
-  # Rate limit for the api
+  # Rate limit for the api.
+  # All api calls share this ratelimit, as
+  # specified in LendingClub's guidelines.
   LC_RATE_LIMIT = dt.timedelta(seconds=1.0)
 
   def __init__(self, investor_id, api_key):
+    """
+    investor_id: LendingClub investor investor_id
+    api_key: LendingClub api key
+    """
     self.investor_id = investor_id
     self.api_key = api_key
+
+    # Url for all account actions
     self._base_url ='https://api.lendingclub.com/api/investor/v1/accounts/{}/{}'\
                     .format(investor_id, '{}')
 
@@ -32,10 +37,11 @@ class Api(object):
 
   def _request_resource(self, resource, data=None):
     """Return json response to resource as dict
+    All api actions share a rate limit specified
+    in LC_RATE_LIMIT.
 
     data -- json payload for the request
     """
-
     req = urllib2.Request(self._base_url.format(resource))
     req.add_header('Authorization', self.api_key)
 
@@ -125,27 +131,23 @@ class Api(object):
 
 
 def main():
-  with open('data/secrets.json') as f:
+  # standard secrets file location
+  with open('secrets.json') as f:
     secrets = json.load(f)
     investor_id = secrets['lc_investor_id']
     api_key = secrets['lc_api_key']
 
   api = Api(investor_id, api_key)
 
-  while True:
-    print dt.datetime.now(), len(api.listed_loans())
-
-  return
   print "\nCash"
-  print api.available_cash()
+  pprint.pprint(api.available_cash())
   print "\nSummary"
-  print api.summary()
-  print "\nNotes owned"
-  print "num notes owned", len(api.notes_owned())
-  print "\nportfolios owned"
-  print api.portfolios_owned()
-  print "\nListed loans"
-  print "first loans:", api.listed_loans()[0]
+  pprint.pprint(api.summary())
+  print "\nNotes owned: ", len(api.notes_owned())
+  print "\nPortfolios owned"
+  pprint.pprint(api.portfolios_owned())
+  print "\nFirst listed loan"
+  pprint.pprint(api.listed_loans()[0])
 
 if __name__ == '__main__':
   main()
