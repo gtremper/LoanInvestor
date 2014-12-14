@@ -98,11 +98,11 @@ class AutoInvestor:
         self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
                             .format(secrets['lc_portfolio']))
 
-  def poll_picks(self):
+  def poll(self, fx):
     """Generator of currently listed picks"""
     while True:
       try:
-        yield self.p2p.picks()
+        yield fx()
       except urllib2.HTTPError as err:
         self.logger.error("HTTPError: {}".format(err.code))
         time.sleep(2)
@@ -114,7 +114,7 @@ class AutoInvestor:
         return
       except Exception as err:
         self.logger.critical("Other exception:", type(err), err)
-        time.sleep(5)
+        time.sleep(2)
 
   def wait_for_new_picks(self):
     """
@@ -125,7 +125,7 @@ class AutoInvestor:
     start = dt.datetime.now()
     self.logger.debug("Starting poll")
 
-    for picks, timestamp in self.poll_picks():
+    for picks, timestamp in self.poll(self.p2p.picks):
       if timestamp > start:
         self.logger.info("New picks")
         return picks
@@ -149,6 +149,40 @@ class AutoInvestor:
       self.logger.error(e)
 
     return res
+
+  def reattempt_invest(self, res):
+    """
+    Attept to reinvest in unsuccessful orders.
+
+    res: Response from an investement attempt (self.invest())
+    """
+    start = dt.datetime.now()
+    WAIT_TIME = dt.timedelta(minutes=20)
+
+    while dt.datetime.now() - start < WAIT_TIME:
+      # Check if we have enough cash
+      if self.lc.available_cash() < self.AMOUNT_PER_LOAN:
+        break
+
+      # Loans we haven't successfully invested in
+      unfulfilled = [order['loanId'] for order in res['orderConfirmations']
+                                      if not int(order['investedAmount'])]
+
+      # We invested in all of our picks
+      if not unfulfilled:
+        break
+
+      # sleep a bit
+      time.sleep(5)
+
+      res = self.invest(unfulfilled)
+
+      # Log any succesful orders
+      for order in res['orderConfirmations']:
+        amount_invested = int(order['investedAmount'])
+        if amount_invested:
+          self.logger.info('Successful reattempt of ${} in loan {}'\
+                      .format(amount_invested, order['loanId']))
 
   def log_results(self, res, picks):
     """
@@ -203,40 +237,6 @@ class AutoInvestor:
     # Log our final remaining ballance
     self.logger.info('Done. ${:.2f} cash remaining'.format(self.lc.available_cash()))
 
-
-  def reattempt_invest(self, res):
-    """
-    Attept to reinvest in unsuccessful orders.
-
-    res: Response from an investement attempt (self.invest())
-    """
-    start = dt.datetime.now()
-    WAIT_TIME = dt.timedelta(minutes=20)
-
-    while dt.datetime.now() - start < WAIT_TIME:
-      # Check if we have enough cash
-      if self.lc.available_cash() < self.AMOUNT_PER_LOAN:
-        break
-
-      # Loans we haven't successfully invested in
-      unfulfilled = [order['loanId'] for order in res['orderConfirmations']
-                                      if not int(order['investedAmount'])]
-
-      # We invested in all of our picks
-      if not unfulfilled:
-        break
-
-      # sleep a bit
-      time.sleep(5)
-
-      res = self.invest(unfulfilled)
-
-      # Log any succesful orders
-      for order in res['orderConfirmations']:
-        amount_invested = int(order['investedAmount'])
-        if amount_invested:
-          self.logger.info('Successful reattempt of ${} in loan {}'\
-                      .format(amount_invested, order['loanId']))
 
 def main():
   #parse arguments
