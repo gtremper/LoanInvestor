@@ -161,13 +161,18 @@ class AutoInvestor:
                 .format(int(order['investedAmount']), grade, loanID))
 
 
-  def auto_invest(self, picks=None):
+  def auto_invest(self, poll=False):
     """
     Attempt to reinvest unsuccessful loans, in case they later become
     available
+
+    poll: True if we want to poll for updated picks,
+          False if we want to use the current picks
     """
-    if picks is None:
+    if poll:
       picks = self.poll_for_update()
+    else:
+      picks, _ = self.p2p.picks()
 
     top = [int(x['loan_id']) for x in picks if x['top'] in self.PICK_LEVEL
                                             and x['grade'] in self.GRADES]
@@ -243,11 +248,7 @@ def main():
 
   # Poll for new picks is '--poll' option provided
   # Otherwise, use current picks
-  if options.poll:
-    res = investor.auto_invest()
-  else:
-    picks, timestamp = investor.p2p.picks()
-    res = investor.auto_invest(picks)
+  investor.auto_invest(options.poll)
 
 if __name__ == '__main__':
   main()
