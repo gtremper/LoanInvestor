@@ -102,7 +102,8 @@ class AutoInvestor:
 
     fx: a function to poll
     """
-    while True:
+    start = dt.datetime.now()
+    while dt.datetime.now() - start < dt.timedelta(minutes=1):
       try:
         yield fx()
       except urllib2.HTTPError as err:
@@ -118,6 +119,9 @@ class AutoInvestor:
         self.logger.critical("Other exception:", type(err), err)
         time.sleep(2)
 
+    self.logger.error("Polling timeout")
+    raise Exception("Polling timeout")
+
   def wait_for_new_picks(self, start=None):
     """
     Start polling for an update in listed loans
@@ -131,9 +135,9 @@ class AutoInvestor:
     self.logger.debug("Starting polling picks")
 
     for picks, timestamp in self.poll(self.p2p.picks):
-      print timestamp
       if timestamp > start:
         self.logger.info("New picks")
+        return picks
 
   def wait_for_new_loans(self, start=None):
     """
