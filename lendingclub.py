@@ -127,7 +127,7 @@ class API(object):
     showAll -- Get all listed loans instead of just the most recent
     """
     req = urllib2.Request(
-      (Api._LOAN_URL + "?showAll=true") if showAll else Api._LOAN_URL
+      (API._LOAN_URL + "?showAll=true") if showAll else API._LOAN_URL
     )
 
     req.add_header('Authorization', self.lc_api_key)
@@ -143,7 +143,7 @@ def main():
     investor_id = secrets['lc_investor_id']
     api_key = secrets['lc_api_key']
 
-  api = Api(investor_id, api_key)
+  api = API(investor_id, api_key)
 
   print "\nCash"
   pprint.pprint(api.available_cash())

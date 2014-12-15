@@ -116,19 +116,41 @@ class AutoInvestor:
         self.logger.critical("Other exception:", type(err), err)
         time.sleep(2)
 
-  def wait_for_new_picks(self):
+  def wait_for_new_picks(self, start=None):
     """
-    Start polling for an update in listed P2P-Picks
+    Start polling for an update in listed loans
     Must be called before picks update
-    """
 
-    start = dt.datetime.now()
-    self.logger.debug("Starting poll")
+    start: Time before picks update
+    """
+    if start is None:
+      start = dt.datetime.now()
+
+    self.logger.debug("Starting polling picks")
 
     for picks, timestamp in self.poll(self.p2p.picks):
       if timestamp > start:
         self.logger.info("New picks")
         return picks
+
+  def wait_for_new_loans(self, start=None):
+    """
+    Start polling for an update in listed P2P-Picks
+    Must be called before picks update
+
+    start: Time before loan update
+    """
+    if start is None:
+      start = dateparser.parse(self.lc.listed_loans()[0]['listD'])
+
+    self.logger.debug("Starting polling loans")
+
+    for loans in self.poll(self.lc.listed_loans):
+      timestamp = dateparser.parse(loans[0]['listD'])
+
+      if timestamp > start:
+        self.logger.info("New loans")
+        return loans
 
   def invest(self, load_ids):
     """
