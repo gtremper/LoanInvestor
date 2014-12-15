@@ -88,11 +88,9 @@ class AutoInvestor:
       self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
 
       # Get portfolio ID from name if it exists
-      self.lc_portfolio_id = None
-      for portfolio in self.lc.portfolios_owned():
-        if portfolio['portfolioName'] == secrets['lc_portfolio']:
-          self.lc_portfolio_id = int(portfolio['portfolioId'])
-          break
+      self.lc_portfolio_id = next((int(p['portfolioId'])
+        for p in self.lc.portfolios_owned() 
+        if p['portfolioName'] == secrets['lc_portfolio']), None)
 
       if self.lc_portfolio_id is None:
         self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
@@ -215,9 +213,7 @@ class AutoInvestor:
     """
 
     # Create map of loan id's to grade
-    id_to_grade = {}
-    for pick in picks:
-      id_to_grade[int(pick['loan_id'])] = pick['grade']
+    id_to_grade = {int(pick['loan_id']): pick['grade'] for pick in picks}
 
     if 'orderConfirmations' not in res:
       self.logger.error('Attempted to invest in an empty list of loans')
