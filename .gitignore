@@ -55,4 +55,5 @@ docs/_build/
 # Local files
 secrets.json
 log.txt
+lastrun.txt
 

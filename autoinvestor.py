@@ -126,14 +126,14 @@ class AutoInvestor:
     start: Time before picks update
     """
     if start is None:
-      start = dt.datetime.now()
+      _, start = self.p2p.picks()
 
     self.logger.debug("Starting polling picks")
 
     for picks, timestamp in self.poll(self.p2p.picks):
+      print timestamp
       if timestamp > start:
         self.logger.info("New picks")
-        return picks
 
   def wait_for_new_loans(self, start=None):
     """
