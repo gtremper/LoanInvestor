@@ -97,7 +97,11 @@ class AutoInvestor:
                             .format(secrets['lc_portfolio']))
 
   def poll(self, fx):
-    """Generator of currently listed picks"""
+    """
+    Generator that polls a function
+
+    fx: a function to poll
+    """
     while True:
       try:
         yield fx()
@@ -109,7 +113,7 @@ class AutoInvestor:
         time.sleep(2)
       except (KeyboardInterrupt,SystemExit) as err:
         # We're trying to quit
-        return
+        raise err
       except Exception as err:
         self.logger.critical("Other exception:", type(err), err)
         time.sleep(2)
