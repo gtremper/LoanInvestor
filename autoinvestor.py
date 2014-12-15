@@ -103,8 +103,12 @@ class AutoInvestor:
     fx: a function to poll
     """
     start = dt.datetime.now()
-    while dt.datetime.now() - start < dt.timedelta(minutes=1):
+    counter = 0
+    while dt.datetime.now() - start < dt.timedelta(minutes=2):
+      counter += 1
       try:
+        if not counter % 10:
+          self.logger.debug('Poll counter: {}'.format(counter))
         yield fx()
       except urllib2.HTTPError as err:
         self.logger.error("HTTPError: {}".format(err.code))
