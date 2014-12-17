@@ -250,11 +250,16 @@ class AutoInvestor:
     else:
       picks, _ = self.p2p.picks()
 
+    # Prioritize high interest rate loans
+    picks.sort(key=lambda x: x['grade'], reverse=True)
+
+    # Filter picks that match our criteria
     top = [int(x['loan_id']) for x in picks if x['top'] in self.PICK_LEVEL
                                             and x['grade'] in self.GRADES]
 
     if not top:
       self.logger.info("No matching picks")
+      self.logger.debug(pprint.pformat(picks))
     else:
       res = self.invest(top)
 

@@ -13,7 +13,7 @@ import urllib2
 
 __all__ = ['API']
 
-class API(object):
+class API:
   """
   Provides and interface to the LendingClub REST API
   https://www.lendingclub.com/developers/lc-api.action

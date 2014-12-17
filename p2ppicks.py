@@ -2,7 +2,6 @@
 
 """
 Wrapper for the P2P-Picks api.
-(Also includes LendingClub api)
 """
 
 import dateutil.parser as dateparser
