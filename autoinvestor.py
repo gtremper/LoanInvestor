@@ -123,8 +123,7 @@ class AutoInvestor:
         self.logger.critical("Other exception:", type(err), err)
         time.sleep(2)
 
-    self.logger.error("Polling timeout")
-    raise Exception("Polling timeout")
+    raise StopIteration("Polling timeout")
 
   def wait_for_new_picks(self, start=None):
     """
@@ -142,6 +141,9 @@ class AutoInvestor:
       if timestamp > start:
         self.logger.info("New picks")
         return picks
+
+    self.logger.error("P2P-Picks polling timeout")
+    raise Exception("P2P-Picks polling timeout")
 
   def wait_for_new_loans(self, start=None):
     """
@@ -161,6 +163,9 @@ class AutoInvestor:
       if timestamp > start:
         self.logger.info("New loans")
         return loans
+
+    self.logger.error("Listed loans polling timeout")
+    raise Exception("Listed loans polling timeout")
 
   def invest(self, load_ids):
     """
