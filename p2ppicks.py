@@ -109,17 +109,17 @@ class API:
     """
     Report P2P-Picks usage.
 
-    res: the json response to lc.API.submit_order()
+    res: the json response to lendingclub.API.submit_order()
     """
     # Return if passed empty list
     if 'orderConfirmations' not in res:
       return
 
-    orders = res['orderConfirmations']
-
     # Return if no notes invested
     if res['orderInstructId'] is None:
       return
+
+    orders = res['orderConfirmations']
 
     # Create  list of successful orders
     picks = [{
