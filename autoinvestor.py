@@ -250,6 +250,12 @@ class AutoInvestor:
     poll: True if we want to poll for updated picks,
           False if we want to use the current picks
     """
+    available_cash = self.lc.available_cash()
+    if available_cash < self.AMOUNT_PER_LOAN:
+      msg = 'Insufficient Cash: ${}'.format(available_cash)
+      self.logger.info(msg)
+      return
+
     if poll:
       picks = self.wait_for_new_picks()
     else:

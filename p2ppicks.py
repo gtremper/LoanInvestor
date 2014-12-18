@@ -33,7 +33,7 @@ class API:
     self.p2p_secret = secret
     self.p2p_sid = session_id
 
-    # Macke sure this user has picks active
+    # Make sure this user has picks active
     if not self.isActive():
       raise Exception("P2P-Picks account not active")
 
