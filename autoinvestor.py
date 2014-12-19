@@ -28,11 +28,6 @@ class AutoInvestor:
   self.p2p: An instance of the P2P-Picks API
   """
 
-  # Investment configurations
-  AMOUNT_PER_LOAN = 25.0
-  GRADES = frozenset(['D','E','F'])
-  PICK_LEVEL = frozenset(['5%'])
-
   def __init__(self, secrets='secrets.json', logfile=None):
     """
     secrets: path to a json file containing sensitive information
@@ -46,6 +41,14 @@ class AutoInvestor:
       "p2p_sid": "384FBC34D3AB"      // P2P-Picks session ID
     }
     """
+    #
+    # Investment configurations
+    # 
+    self.AMOUNT_PER_LOAN = 25.0
+    self.MIN_RATE = 16.0 # Minimum interest rate
+    self.MAX_RATE = 25.0 # Maximum interest rate
+    self.PICK_LEVEL = frozenset(['5%'])
+
     #
     # Set up logging
     #
@@ -194,7 +197,7 @@ class AutoInvestor:
     res: Response from an investement attempt (self.invest())
     """
     start = dt.datetime.now()
-    WAIT_TIME = dt.timedelta(minutes=20)
+    WAIT_TIME = dt.timedelta(minutes=30)
 
     while dt.datetime.now() - start < WAIT_TIME:
       # Check if we have enough cash
@@ -242,41 +245,61 @@ class AutoInvestor:
                 .format(int(order['investedAmount']), grade, loanID))
 
 
-  def auto_invest(self, poll=False):
+  def auto_invest(self, poll=False, wait=False):
     """
-    Attempt to reinvest unsuccessful loans, in case they later become
-    available
+    Main investment script for AutoInvestor. This should be run shortly
+    before the hour. It will sleep until 5 seconds before the next hour,
+    then poll both LendingClub and P2P-Picks for loan selection. Will
+    attempt to reinvest in unsuccessful loans 
 
     poll: True if we want to poll for updated picks,
           False if we want to use the current picks
     """
+    # Exit if we don't have enough cash for 1 loan
     available_cash = self.lc.available_cash()
     if available_cash < self.AMOUNT_PER_LOAN:
       msg = 'Insufficient Cash: ${}'.format(available_cash)
       self.logger.info(msg)
       return
 
+    # Store old picks time stamp to check for update
+    _, old_picks_timestamp = self.p2p.picks()
+
+    # Sleep until 5 seconds before the hour
+    if wait:
+      now = dt.datetime.now()
+      sleep_time = now.replace(minute=59, second=55, microsecond=0) - now
+      self.logger.debug('Sleep {} seconds'.format(sleep_time.total_seconds()))
+      time.sleep(sleep_time.total_seconds())
+
+    # Get listed loans
+    loans = self.wait_for_new_loans() if poll else self.lc.listed_loans()
+    valid_loans = [l for l in loans
+                    if self.MIN_RATE < l['intRate'] < self.MAX_RATE]
+
+    # Prioritize high interest rate loans
+    valid_loans.sort(key=lambda x: x['intRate'], reverse=True)
+
     if poll:
-      picks = self.wait_for_new_picks()
+      picks = self.wait_for_new_picks(old_picks_timestamp)
     else:
       picks, _ = self.p2p.picks()
 
-    # Prioritize high interest rate loans
-    picks.sort(key=lambda x: x['grade'], reverse=True)
-
     # Filter picks that match our criteria
-    top = [int(x['loan_id']) for x in picks if x['top'] in self.PICK_LEVEL
-                                            and x['grade'] in self.GRADES]
+    valid_picks = frozenset(int(x['loan_id']) for x in picks 
+                                      if x['top'] in self.PICK_LEVEL)
 
-    if not top:
+    top_picks = [l['id'] for l in valid_loans if l['id'] in valid_picks]
+
+    if not top_picks:
       self.logger.info("No matching picks")
       self.logger.debug(pprint.pformat(picks))
     else:
-      res = self.invest(top)
+      res = self.invest(top_picks)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
-      self.log_results(res, picks)
+      self.log_results(res, top_picks)
 
       self.reattempt_invest(res)
 
@@ -292,6 +315,10 @@ def main():
   parser.add_option('-p', '--poll', action='store_true', 
     dest='poll', default=False, help="Poll for updated picks")
 
+  # '--wait' indicates we should wait till next hour
+  parser.add_option('-w', '--wait', action='store_true', 
+    dest='wait', default=False, help="Wait until next hour")
+
   # '--log' specifies a log file to which we should append logs
   parser.add_option('-l', '--log', action='store',
     dest='logfile', type='string', help="Log activity to file")
@@ -304,7 +331,7 @@ def main():
 
   # Poll for new picks is '--poll' option provided
   # Otherwise, use current picks
-  investor.auto_invest(options.poll)
+  investor.auto_invest(poll=options.poll, wait=options.wait)
 
 if __name__ == '__main__':
   main()
