@@ -299,7 +299,7 @@ class AutoInvestor:
 
       # log results
       self.logger.debug(pprint.pformat(picks))
-      self.log_results(res, top_picks)
+      self.log_results(res, picks)
 
       self.reattempt_invest(res)
 
