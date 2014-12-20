@@ -107,7 +107,7 @@ class AutoInvestor:
     """
     start = dt.datetime.now()
     counter = 0
-    while dt.datetime.now() - start < dt.timedelta(minutes=2):
+    while dt.datetime.now() - start < dt.timedelta(minutes=1):
       counter += 1
       try:
         if not counter % 10:
