@@ -42,14 +42,6 @@ class AutoInvestor:
     }
     """
     #
-    # Investment configurations
-    # 
-    self.AMOUNT_PER_LOAN = 25.0
-    self.MIN_RATE = 16.0 # Minimum interest rate
-    self.MAX_RATE = 25.0 # Maximum interest rate
-    self.PICK_LEVEL = frozenset(['5%'])
-
-    #
     # Set up logging
     #
      
@@ -98,6 +90,17 @@ class AutoInvestor:
       if self.lc_portfolio_id is None:
         self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
                             .format(secrets['lc_portfolio']))
+    #
+    # Investment configurations
+    #
+    self.MIN_RATE = 16.0 # Minimum interest rate
+    self.MAX_RATE = 25.0 # Maximum interest rate
+    self.PICK_LEVEL = frozenset(['5%'])
+
+    if self.lc.available_cash() < 500.0:
+      self.AMOUNT_PER_LOAN = 25.0
+    else:
+      self.AMOUNT_PER_LOAN = 50.0
 
   def poll(self, fx):
     """
