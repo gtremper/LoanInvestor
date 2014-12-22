@@ -115,16 +115,15 @@ class AutoInvestor:
         yield fx()
       except urllib2.HTTPError as err:
         self.logger.error("HTTPError: {}".format(err.code))
-        time.sleep(2)
+        time.sleep(1)
       except urllib2.URLError as err:
         self.logger.error("URLError: {}".format(err.reason))
-        time.sleep(2)
+        time.sleep(1)
       except (KeyboardInterrupt,SystemExit) as err:
         # We're trying to quit
         raise err
       except Exception as err:
-        self.logger.critical("Other exception:", type(err), err)
-        time.sleep(2)
+        self.logger.critical("Other exception: {} {}".format(type(err), err))
 
     raise StopIteration("Polling timeout")
 
