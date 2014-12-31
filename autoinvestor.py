@@ -270,7 +270,7 @@ class AutoInvestor:
     # Sleep until 5 seconds before the hour
     if wait:
       now = dt.datetime.now()
-      sleep_time = now.replace(minute=59, second=58, microsecond=0) - now
+      sleep_time = now.replace(minute=59, second=56, microsecond=0) - now
       self.logger.debug('Sleep {} seconds'.format(sleep_time.total_seconds()))
       time.sleep(sleep_time.total_seconds())
 
