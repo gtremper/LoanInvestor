@@ -96,11 +96,7 @@ class AutoInvestor:
     self.MIN_RATE = 16.0 # Minimum interest rate
     self.MAX_RATE = 25.0 # Maximum interest rate
     self.PICK_LEVEL = frozenset(['5%'])
-
-    if self.lc.available_cash() < 500.0:
-      self.AMOUNT_PER_LOAN = 25.0
-    else:
-      self.AMOUNT_PER_LOAN = 50.0
+    self.AMOUNT_PER_LOAN = 25.0
 
   def poll(self, fx):
     """
@@ -270,7 +266,7 @@ class AutoInvestor:
     # Sleep until 5 seconds before the hour
     if wait:
       now = dt.datetime.now()
-      sleep_time = now.replace(minute=59, second=56, microsecond=0) - now
+      sleep_time = now.replace(minute=59, second=58, microsecond=0) - now
       self.logger.debug('Sleep {} seconds'.format(sleep_time.total_seconds()))
       time.sleep(sleep_time.total_seconds())
 
