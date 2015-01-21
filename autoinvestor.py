@@ -185,6 +185,11 @@ class AutoInvestor:
       return res
     except urllib2.HTTPError as e:
       self.logger.error(e)
+    except Exception as e:
+      self.logger.error(res)
+      self.logger.error(e)
+      raise
+
 
     return res
 
