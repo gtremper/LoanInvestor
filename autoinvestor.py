@@ -83,9 +83,13 @@ class AutoInvestor:
       self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
 
       # Get portfolio ID from name if it exists
-      self.lc_portfolio_id = next((int(p['portfolioId'])
-        for p in self.lc.portfolios_owned() 
-        if p['portfolioName'] == secrets['lc_portfolio']), None)
+      try:
+        self.lc_portfolio_id = next((int(p['portfolioId'])
+          for p in self.lc.portfolios_owned() 
+          if p['portfolioName'] == secrets['lc_portfolio']), None)
+      except urllib2.HTTPError as err:
+        self.logger.error("HTTPError: {}".format(err.code))
+
 
       if self.lc_portfolio_id is None:
         self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
