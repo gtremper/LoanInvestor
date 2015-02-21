@@ -83,13 +83,7 @@ class AutoInvestor:
       self.p2p = p2p.API(p2p_key, p2p_secret, p2p_sid)
 
       # Get portfolio ID from name if it exists
-      try:
-        self.lc_portfolio_id = next((int(p['portfolioId'])
-          for p in self.lc.portfolios_owned() 
-          if p['portfolioName'] == secrets['lc_portfolio']), None)
-      except urllib2.HTTPError as err:
-        self.logger.error("HTTPError: {}".format(err.code))
-
+      self.lc_portfolio_id = self.get_portfoio_id(secrets['lc_portfolio'])
 
       if self.lc_portfolio_id is None:
         self.logger.warning("Portfolio '{}' not found. Not using a portfolio"\
@@ -101,6 +95,25 @@ class AutoInvestor:
     self.MAX_RATE = 24.0 # Maximum interest rate
     self.PICK_LEVEL = frozenset(['5%'])
     self.AMOUNT_PER_LOAN = 25.0
+
+  def get_portfoio_id(self, name):
+    """
+    Get portfolio id for portfolio with 'name'
+    Returns None if timeout or no portfolio with that name
+    """
+    start = dt.datetime.now()
+    while dt.datetime.now() - start < dt.timedelta(seconds=20):
+      try:
+        return next((int(p['portfolioId'])
+          for p in self.lc.portfolios_owned() 
+          if p['portfolioName'] == name), None)
+      except urllib2.HTTPError as err:
+        self.logger.debug("Portoflio error")
+        time.sleep(1.0)
+
+    # Timeout
+    self.logger.warning("Portoflio timeout")
+    return None
 
   def poll(self, fx):
     """
