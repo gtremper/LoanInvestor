@@ -126,12 +126,21 @@ class API:
     Get currently listed loans
     showAll -- Get all listed loans instead of just the most recent
     """
+    # Build request
     req = urllib2.Request(
       (API._LOAN_URL + "?showAll=true") if showAll else API._LOAN_URL
     )
-
     req.add_header('Authorization', self.lc_api_key)
 
+    # Ratelimit call
+    sleep_time = self.last_api_call - dt.datetime.now() + self.LC_RATE_LIMIT
+    if sleep_time > dt.timedelta(0):
+      time.sleep(sleep_time.total_seconds())
+
+    # Update last call
+    self.last_api_call = dt.datetime.now()
+
+    # Query endpoint
     data = json.load(urllib2.urlopen(req))
     return data['loans']
 

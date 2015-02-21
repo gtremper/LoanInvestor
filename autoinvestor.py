@@ -14,7 +14,6 @@ import logging
 import pprint
 import time
 import urllib2
-import urllib2
 from optparse import OptionParser
 
 __all__ = ['AutoInvestor']
