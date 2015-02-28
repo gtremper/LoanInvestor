@@ -114,29 +114,36 @@ class AutoInvestor:
     self.logger.warning("Portoflio timeout")
     return None
 
-  def poll(self, fx):
+  def poll(self, fn):
     """
     Generator that polls a function
 
-    fx: a function to poll
+    fn: a function to poll. Will repoll if fn() returns `None`
     """
-    start = dt.datetime.now()
     counter = 0
-    while dt.datetime.now() - start < dt.timedelta(minutes=1):
+    timeout = dt.datetime.now() + dt.timedelta(minutes=1)
+    while dt.datetime.now() < timeout:
       counter += 1
       try:
         if not counter % 10:
           self.logger.debug('Poll counter: {}'.format(counter))
-        yield fx()
+
+        value = fn()
+        if value is not None:
+          yield value
+
       except urllib2.HTTPError as err:
         self.logger.error("HTTPError: {}".format(err.code))
         time.sleep(1)
+
       except urllib2.URLError as err:
         self.logger.error("URLError: {}".format(err.reason))
         time.sleep(1)
+
       except (KeyboardInterrupt,SystemExit) as err:
         # We're trying to quit
         raise err
+
       except Exception as err:
         self.logger.critical("Other exception: {} {}".format(type(err), err))
 
