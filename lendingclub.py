@@ -145,7 +145,7 @@ class API:
 
     # Query endpoint
     data = json.load(urllib2.urlopen(req))
-    return data['loans']
+    return data['loans'] if 'loans' in data else None
 
 
 def main():
