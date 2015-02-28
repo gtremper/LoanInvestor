@@ -41,6 +41,19 @@ class API:
     # Last time an api call was made (for rate limiting)
     self.last_api_call = dt.datetime(year=2000,month=1,day=1)
 
+  def _wait_for_timeout(self):
+    """
+    Wait until `LC_RATE_LIMIT` time has passed since the last API call
+    Time of last call stored in `last_api_call`
+    This should be called right before the rate-limited action
+    """
+    sleep_time = self.last_api_call - dt.datetime.now() + self.LC_RATE_LIMIT
+    if sleep_time > dt.timedelta(0):
+      time.sleep(sleep_time.total_seconds())
+
+    # Update last call
+    self.last_api_call = dt.datetime.now()
+
   def _request_resource(self, resource, data=None):
     """Return json response to resource as dict
     All api actions share a rate limit specified
@@ -57,12 +70,7 @@ class API:
       req.add_data(json.dumps(data, separators=(',',':')))
 
     # Rate limit all api calls
-    sleep_time = self.last_api_call - dt.datetime.now() + self.LC_RATE_LIMIT
-    if sleep_time > dt.timedelta(0):
-      time.sleep(sleep_time.total_seconds())
-
-    # Update last call
-    self.last_api_call = dt.datetime.now()
+    self._wait_for_timeout()
 
     return json.load(urllib2.urlopen(req))
 
@@ -133,12 +141,7 @@ class API:
     req.add_header('Authorization', self.lc_api_key)
 
     # Ratelimit call
-    sleep_time = self.last_api_call - dt.datetime.now() + self.LC_RATE_LIMIT
-    if sleep_time > dt.timedelta(0):
-      time.sleep(sleep_time.total_seconds())
-
-    # Update last call
-    self.last_api_call = dt.datetime.now()
+    self._wait_for_timeout()
 
     # Query endpoint
     data = json.load(urllib2.urlopen(req))
