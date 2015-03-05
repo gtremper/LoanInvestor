@@ -90,7 +90,7 @@ class AutoInvestor:
     #
     # Investment configurations
     #
-    self.MIN_RATE = 17.0 # Minimum interest rate
+    self.MIN_RATE = 16.95 # Minimum interest rate
     self.MAX_RATE = 24.0 # Maximum interest rate
     self.PICK_LEVEL = frozenset(['5%'])
     self.AMOUNT_PER_LOAN = 25.0
