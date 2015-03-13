@@ -159,7 +159,7 @@ class AutoInvestor:
     if start is None:
       _, start = self.p2p.picks()
 
-    self.logger.debug("Starting polling picks")
+    self.logger.debug("Start polling picks")
 
     for picks, timestamp in self.poll(self.p2p.picks):
       if timestamp > start:
@@ -179,7 +179,7 @@ class AutoInvestor:
     if start is None:
       start = dateparser.parse(self.lc.listed_loans()[0]['listD'])
 
-    self.logger.debug("Starting polling loans")
+    self.logger.debug("Start polling loans")
 
     for loans in self.poll(self.lc.listed_loans):
       timestamp = dateparser.parse(loans[0]['listD'])
