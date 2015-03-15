@@ -227,18 +227,19 @@ class AutoInvestor:
 
     return res
 
-  def reattempt_invest(self, res):
+  def reattempt_invest(self, res, amount_per_loan):
     """
     Attept to reinvest in unsuccessful orders.
 
     res: Response from an investement attempt (self.invest())
+          Assumes that there was at least one attempted investment
     """
     start = dt.datetime.now()
     WAIT_TIME = dt.timedelta(minutes=30)
 
     while dt.datetime.now() - start < WAIT_TIME:
       # Check if we have enough cash
-      if self.lc.available_cash() < self.AMOUNT_PER_LOAN:
+      if self.lc.available_cash() < self.MIN_AMOUNT_PER_LOAN:
         break
 
       # Loans we haven't successfully invested in
@@ -252,7 +253,7 @@ class AutoInvestor:
       # sleep a bit
       time.sleep(5)
 
-      res = self.invest(unfulfilled, self.AMOUNT_PER_LOAN)
+      res = self.invest(unfulfilled, amount_per_loan)
 
       # Log any succesful orders
       for order in res['orderConfirmations']:
@@ -294,7 +295,7 @@ class AutoInvestor:
     """
     # Exit if we don't have enough cash for 1 loan
     available_cash = self.lc.available_cash()
-    if available_cash < self.AMOUNT_PER_LOAN:
+    if available_cash < self.MIN_AMOUNT_PER_LOAN:
       msg = 'Insufficient Cash: ${}'.format(available_cash)
       self.logger.info(msg)
       return
@@ -333,13 +334,17 @@ class AutoInvestor:
       self.logger.info("No matching picks")
       self.logger.debug(pprint.pformat(picks))
     else:
-      res = self.invest(top_picks, self.AMOUNT_PER_LOAN)
+      # Calculate amount per loan
+      amount_per_loan = self.AMOUNT_PER_LOAN
+
+
+      res = self.invest(top_picks, amount_per_loan)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
       self.log_results(res, picks)
 
-      self.reattempt_invest(res)
+      self.reattempt_invest(res, amount_per_loan)
 
     # Log our final remaining ballance
     self.logger.info('Done. ${:.2f} cash remaining'.format(self.lc.available_cash()))
