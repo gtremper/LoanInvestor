@@ -26,6 +26,10 @@ class AutoInvestor:
   self.lc: An instance of the LendingClub API
   self.p2p: An instance of the P2P-Picks API
   """
+  #
+  # Constants
+  #
+  MIN_AMOUNT_PER_LOAN = 25.0
 
   def __init__(self, secrets='secrets.json', logfile=None):
     """
@@ -43,7 +47,6 @@ class AutoInvestor:
     #
     # Set up logging
     #
-     
     self.logger = logging.getLogger('AutoInvestor')
     self.logger.setLevel(logging.DEBUG)
 
@@ -90,10 +93,17 @@ class AutoInvestor:
     #
     # Investment configurations
     #
-    self.MIN_RATE = 16.95 # Minimum interest rate
-    self.MAX_RATE = 24.0 # Maximum interest rate
+    # Minimum interest rate
+    self.MIN_INTEREST_RATE = 16.95
+
+    # Maximum interest rate
+    self.MAX_SUB_GRADE = 'F2'
+
+    # Acceptable P2P-Picks grade
     self.PICK_LEVEL = frozenset(['5%'])
-    self.AMOUNT_PER_LOAN = 25.0
+
+    # Desired amount per loan. Will use less if not enough available cash.
+    self.AMOUNT_PER_LOAN = 25.0 
 
   def get_portfoio_id(self, name):
     """
@@ -191,19 +201,20 @@ class AutoInvestor:
     self.logger.error("Listed loans polling timeout")
     raise Exception("Listed loans polling timeout")
 
-  def invest(self, load_ids):
+  def invest(self, load_ids, amount_per_loan):
     """
     Attept to invest in loans by id. Reports
     successful investments to P2P-Picks.
 
     load_ids: a list of loan ids
+    amount_per_loan: The amount to invest per loan
 
     Returns: JSON reponse from lending club
     """
     try:
       # Submit order and report activity to P2P-Picks
       res = self.lc.submit_order(load_ids,
-                  self.AMOUNT_PER_LOAN, self.lc_portfolio_id)
+                  amount_per_loan, self.lc_portfolio_id)
       self.p2p.report(res)
       return res
     except urllib2.HTTPError as e:
@@ -241,7 +252,7 @@ class AutoInvestor:
       # sleep a bit
       time.sleep(5)
 
-      res = self.invest(unfulfilled)
+      res = self.invest(unfulfilled, self.AMOUNT_PER_LOAN)
 
       # Log any succesful orders
       for order in res['orderConfirmations']:
@@ -301,7 +312,8 @@ class AutoInvestor:
     # Get listed loans
     loans = self.wait_for_new_loans() if poll else self.lc.listed_loans()
     valid_loans = [l for l in loans
-                    if self.MIN_RATE < l['intRate'] < self.MAX_RATE]
+                    if l['intRate'] >= self.MIN_INTEREST_RATE
+                    and l['subGrade'] <= self.MAX_SUB_GRADE]
 
     # Prioritize high interest rate loans
     valid_loans.sort(key=lambda x: x['intRate'], reverse=True)
@@ -321,7 +333,7 @@ class AutoInvestor:
       self.logger.info("No matching picks")
       self.logger.debug(pprint.pformat(picks))
     else:
-      res = self.invest(top_picks)
+      res = self.invest(top_picks, self.AMOUNT_PER_LOAN)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
