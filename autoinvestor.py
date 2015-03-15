@@ -103,7 +103,7 @@ class AutoInvestor:
     self.PICK_LEVEL = frozenset(['5%'])
 
     # Desired amount per loan. Will use less if not enough available cash.
-    self.AMOUNT_PER_LOAN = 25.0 
+    self.AMOUNT_PER_LOAN = 25.0
 
   def get_portfoio_id(self, name):
     """
@@ -238,20 +238,20 @@ class AutoInvestor:
 
     while dt.datetime.now() - start < WAIT_TIME:
       # Check if we have enough cash
-      if self.lc.available_cash() < self.MIN_AMOUNT_PER_LOAN:
+      available_cash = self.lc.available_cash()
+      if available_cash < self.MIN_AMOUNT_PER_LOAN:
         break
 
       # Loans we haven't successfully invested in
-      unfulfilled = [(order['loanId'], order['requestedAmount'])
-                      for order in res['orderConfirmations']
-                      if not int(order['investedAmount'])]
+      unfulfilled = (
+        (order['loanId'], min(float(order['requestedAmount']), available_cash))
+        for order in res['orderConfirmations']
+        if not int(order['investedAmount'])
+      )
 
       # We invested in all of our picks
       if not unfulfilled:
         break
-
-      # sleep a bit
-      time.sleep(5)
 
       res = self.invest(unfulfilled)
 
@@ -259,6 +259,7 @@ class AutoInvestor:
       for order in res['orderConfirmations']:
         amount_invested = int(order['investedAmount'])
         if amount_invested:
+          self.logger.debug(pprint.pformat(order))
           self.logger.info('Successful reattempt of ${} in loan {}'\
                       .format(amount_invested, order['loanId']))
 
@@ -334,15 +335,12 @@ class AutoInvestor:
       self.logger.info("No matching picks")
       self.logger.debug(pprint.pformat(picks))
     else:
-      # Calculate amount per loan
-      max_per_loan = max(available_cash / len(top_picks), self.MIN_AMOUNT_PER_LOAN)
-      amount = min(max_per_loan, self.AMOUNT_PER_LOAN)
-
       # Create order
-      res = self.invest((lid, amount) for lid in top_picks)
+      res = self.invest((lid, self.AMOUNT_PER_LOAN) for lid in top_picks)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
+      self.logger.debug(pprint.pformat(res))
       self.log_results(res, picks)
 
       self.reattempt_invest(res)
