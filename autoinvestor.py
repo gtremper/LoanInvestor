@@ -201,20 +201,20 @@ class AutoInvestor:
     self.logger.error("Listed loans polling timeout")
     raise Exception("Listed loans polling timeout")
 
-  def invest(self, load_ids, amount_per_loan):
+  def invest(self, order):
     """
     Attept to invest in loans by id. Reports
     successful investments to P2P-Picks.
 
-    load_ids: a list of loan ids
-    amount_per_loan: The amount to invest per loan
+    order: A lists of pairs (loan_id, amount) where 'amount'
+            will be invested in the corresponding 'loan_id'.
+            'amount' must be multiple of 25
 
     Returns: JSON reponse from lending club
     """
     try:
       # Submit order and report activity to P2P-Picks
-      res = self.lc.submit_order(load_ids,
-                  amount_per_loan, self.lc_portfolio_id)
+      res = self.lc.submit_order(order, self.lc_portfolio_id)
       self.p2p.report(res)
       return res
     except urllib2.HTTPError as e:
@@ -227,12 +227,11 @@ class AutoInvestor:
 
     return res
 
-  def reattempt_invest(self, res, amount_per_loan):
+  def reattempt_invest(self, res):
     """
     Attept to reinvest in unsuccessful orders.
 
     res: Response from an investement attempt (self.invest())
-          Assumes that there was at least one attempted investment
     """
     start = dt.datetime.now()
     WAIT_TIME = dt.timedelta(minutes=30)
@@ -243,8 +242,9 @@ class AutoInvestor:
         break
 
       # Loans we haven't successfully invested in
-      unfulfilled = [order['loanId'] for order in res['orderConfirmations']
-                                      if not int(order['investedAmount'])]
+      unfulfilled = [(order['loanId'], order['requestedAmount'])
+                      for order in res['orderConfirmations']
+                      if not int(order['investedAmount'])]
 
       # We invested in all of our picks
       if not unfulfilled:
@@ -253,7 +253,7 @@ class AutoInvestor:
       # sleep a bit
       time.sleep(5)
 
-      res = self.invest(unfulfilled, amount_per_loan)
+      res = self.invest(unfulfilled)
 
       # Log any succesful orders
       for order in res['orderConfirmations']:
@@ -335,16 +335,17 @@ class AutoInvestor:
       self.logger.debug(pprint.pformat(picks))
     else:
       # Calculate amount per loan
-      amount_per_loan = self.AMOUNT_PER_LOAN
+      max_per_loan = max(available_cash / len(top_picks), self.MIN_AMOUNT_PER_LOAN)
+      amount = min(max_per_loan, self.AMOUNT_PER_LOAN)
 
-
-      res = self.invest(top_picks, amount_per_loan)
+      # Create order
+      res = self.invest((lid, amount) for lid in top_picks)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
       self.log_results(res, picks)
 
-      self.reattempt_invest(res, amount_per_loan)
+      self.reattempt_invest(res)
 
     # Log our final remaining ballance
     self.logger.info('Done. ${:.2f} cash remaining'.format(self.lc.available_cash()))
