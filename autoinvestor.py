@@ -253,7 +253,12 @@ class AutoInvestor:
       if not unfulfilled:
         break
 
+      # Attempt another invest and update 'res' with its respons
       res = self.invest(unfulfilled)
+
+      # Try again if malformed response
+      if 'orderConfirmations' not in res:
+        continue
 
       # Log any succesful orders
       for order in res['orderConfirmations']:
