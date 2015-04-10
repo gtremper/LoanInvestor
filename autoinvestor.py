@@ -242,6 +242,12 @@ class AutoInvestor:
       if available_cash < self.MIN_AMOUNT_PER_LOAN:
         break
 
+      # Check if response has expected key
+      if 'orderConfirmations' not in res:
+        self.logger.debug("Key not found")
+        self.logger.debug(pprint.pformat(res))
+        return
+
       # Loans we haven't successfully invested in
       unfulfilled = (
         (order['loanId'], min(float(order['requestedAmount']), available_cash))
@@ -256,9 +262,11 @@ class AutoInvestor:
       # Attempt another invest and update 'res' with its respons
       res = self.invest(unfulfilled)
 
-      # Try again if malformed response
+      # Check if response has expected key
       if 'orderConfirmations' not in res:
-        continue
+        self.logger.debug("Malformed response")
+        self.logger.debug(pprint.pformat(res))
+        return
 
       # Log any succesful orders
       for order in res['orderConfirmations']:
