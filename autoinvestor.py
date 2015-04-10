@@ -294,7 +294,8 @@ class AutoInvestor:
     Main investment script for AutoInvestor. This should be run shortly
     before the hour. It will sleep until 5 seconds before the next hour,
     then poll both LendingClub and P2P-Picks for loan selection. Will
-    attempt to reinvest in unsuccessful loans 
+    attempt to reinvest in unsuccessful loans. The min of AMOUNT_PER_LOAN
+    and the (available cash / number of valid picks) is invested per loan
 
     poll: True if we want to poll for updated picks,
           False if we want to use the current picks
@@ -340,8 +341,14 @@ class AutoInvestor:
       self.logger.info("No matching picks")
       self.logger.debug(pprint.pformat(picks))
     else:
+      # Calculate how much to invest per loan
+      amount = available_cash / len(top_picks)
+      amount = amount - (amount % self.MIN_AMOUNT_PER_LOAN)
+      amount = min(self.AMOUNT_PER_LOAN, amount)
+      amount = max(self.MIN_AMOUNT_PER_LOAN, amount)
+
       # Create order
-      res = self.invest((lid, self.AMOUNT_PER_LOAN) for lid in top_picks)
+      res = self.invest((lid, amount) for lid in top_picks)
 
       # log results
       self.logger.debug(pprint.pformat(picks))
