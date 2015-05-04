@@ -264,7 +264,7 @@ class AutoInvestor:
       if 'orderConfirmations' not in res:
         self.logger.debug("Malformed response")
         self.logger.debug(pprint.pformat(res))
-        self.logger.debug(unfulfilled)
+        self.logger.debug(list(unfulfilled))
         return
 
       # Log any succesful orders
