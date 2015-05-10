@@ -247,11 +247,9 @@ class AutoInvestor:
         return
 
       # Loans we haven't successfully invested in
-      unfulfilled = (
-        (order['loanId'], min(float(order['requestedAmount']), available_cash))
-        for order in res['orderConfirmations']
-        if not int(order['investedAmount'])
-      )
+      unfulfilled = [(order['loanId'], float(order['requestedAmount']))
+                      for order in res['orderConfirmations']
+                      if not int(order['investedAmount'])]
 
       # We invested in all of our picks
       if not unfulfilled:
@@ -262,9 +260,9 @@ class AutoInvestor:
 
       # Check if response has expected key
       if 'orderConfirmations' not in res:
-        self.logger.debug("Malformed response")
+        self.logger.debug("No order confirmations")
         self.logger.debug(pprint.pformat(res))
-        self.logger.debug(list(unfulfilled))
+        self.logger.debug(pprint.pformat(unfulfilled))
         return
 
       # Log any succesful orders
