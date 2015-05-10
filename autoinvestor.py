@@ -247,9 +247,15 @@ class AutoInvestor:
         return
 
       # Loans we haven't successfully invested in
-      unfulfilled = [(order['loanId'], float(order['requestedAmount']))
-                      for order in res['orderConfirmations']
-                      if not int(order['investedAmount'])]
+      unfulfilled = [
+        (order['loanId'], min(float(order['requestedAmount']), available_cash))
+          for order in res['orderConfirmations']
+          if not int(order['investedAmount'])
+      ]
+
+      # Make sure we have enough cash for all these orders
+      while sum(amt for order_id,amt in unfulfilled) > available_cash:
+        unfulfilled.pop()
 
       # We invested in all of our picks
       if not unfulfilled:
