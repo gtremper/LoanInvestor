@@ -94,7 +94,7 @@ class AutoInvestor:
     # Investment configurations
     #
     # Minimum interest rate
-    self.MIN_INTEREST_RATE = 16.95
+    self.MIN_INTEREST_RATE = 16.5
 
     # Maximum interest rate
     self.MAX_SUB_GRADE = 'F2'
