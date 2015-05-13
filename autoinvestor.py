@@ -217,7 +217,7 @@ class AutoInvestor:
       res = self.lc.submit_order(order, self.lc_portfolio_id)
       self.p2p.report(res)
       return res
-    except urllib2.HTTPError as e:
+    except (urllib2.HTTPError,urllib2.URLError) as e:
       self.logger.error(e)
     except Exception as e:
       self.logger.error(e)
