@@ -94,7 +94,7 @@ class AutoInvestor:
     # Investment configurations
     #
     # Minimum interest rate
-    self.MIN_INTEREST_RATE = 16.5
+    self.MIN_INTEREST_RATE = 16.75
 
     # Maximum interest rate
     self.MAX_SUB_GRADE = 'F2'
@@ -103,7 +103,7 @@ class AutoInvestor:
     self.PICK_LEVEL = frozenset(['5%'])
 
     # Desired amount per loan. Will use less if not enough available cash.
-    self.AMOUNT_PER_LOAN = 25.0
+    self.AMOUNT_PER_LOAN = 50.0
 
   def get_portfoio_id(self, name):
     """
@@ -118,7 +118,7 @@ class AutoInvestor:
           if p['portfolioName'] == name), None)
       except urllib2.HTTPError as err:
         self.logger.debug("Portoflio error")
-        time.sleep(1.0)
+        time.sleep(self.lc.LC_RATE_LIMIT.total_seconds())
 
     # Timeout
     self.logger.warning("Portoflio timeout")
@@ -240,6 +240,9 @@ class AutoInvestor:
       if available_cash < self.MIN_AMOUNT_PER_LOAN:
         break
 
+      # Calculate cash we can invest
+      investable_cash = available_cash - (available_cash % self.MIN_AMOUNT_PER_LOAN)
+
       # Check if response has expected key
       if 'orderConfirmations' not in res:
         self.logger.debug("Key not found")
@@ -248,7 +251,7 @@ class AutoInvestor:
 
       # Loans we haven't successfully invested in
       unfulfilled = [
-        (order['loanId'], min(float(order['requestedAmount']), available_cash))
+        (order['loanId'], min(float(order['requestedAmount']), investable_cash))
           for order in res['orderConfirmations']
           if not int(order['investedAmount'])
       ]
