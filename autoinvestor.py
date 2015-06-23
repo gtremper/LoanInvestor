@@ -131,7 +131,7 @@ class AutoInvestor:
     fn: a function to poll. Will repoll if fn() returns `None`
     """
     counter = 0
-    timeout = dt.datetime.now() + dt.timedelta(minutes=1)
+    timeout = dt.datetime.now() + dt.timedelta(seconds=30)
     while dt.datetime.now() < timeout:
       counter += 1
       try:
@@ -341,7 +341,10 @@ class AutoInvestor:
     valid_loans.sort(key=lambda x: x['intRate'], reverse=True)
 
     if poll:
-      picks = self.wait_for_new_picks(old_picks_timestamp)
+      try:
+        picks = self.wait_for_new_picks(old_picks_timestamp)
+      except:
+        picks, _ = self.p2p.picks()
     else:
       picks, _ = self.p2p.picks()
 
