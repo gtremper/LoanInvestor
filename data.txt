@@ -1,0 +1,18 @@
+loan_amnt = loanAmnt
+int_rate = intRate
+emp_length(0-10) = empLength
+home_ownership(RENT,MORTGAGE,OWN) = homeOwnership
+annual_inc = annualInc
+dti = dti
+delinq_2yrs = delinq2Yrs
+issue_d - earliest_cr_line = listD - earliestCrLine
+(fico_range_high - fico_range_low)/ 2 = (ficoRangeHigh - ficoRangeLow)/2
+inq_last_6mths = inqLast6Mths
+mths_since_last_record(has null values) = mthsSinceLastRecord
+open_acc = openAcc
+pub_rec = pubRec
+revol_bal = revolBal
+revol_util = recolUtil
+total_acc = totalAcc
+(open_acc / total_acc) Percent accounts open?
+issue - last_Credit_pull_d
